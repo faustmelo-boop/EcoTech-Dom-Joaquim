@@ -1,0 +1,144 @@
+{
+  "entities": {
+    "User": {
+      "title": "Professor",
+      "description": "Informações do professor que utiliza a plataforma.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "school": { "type": "string" },
+        "role": { "type": "string", "enum": ["teacher", "admin"] }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "ClassTeam": {
+      "title": "Turma/Equipe",
+      "description": "Uma turma de alunos que participa da gincana.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "teamName": { "type": "string" },
+        "points": { "type": "number" },
+        "teacherId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "teamName", "points", "teacherId"]
+    },
+    "ResidueEntry": {
+      "title": "Registro de Resíduo",
+      "description": "Coleta de lixo registrada por uma turma.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "classId": { "type": "string" },
+        "type": { "type": "string", "enum": ["Plástico", "Papel", "Vidro", "Metal", "Outros"] },
+        "quantity": { "type": "number" },
+        "teacherId": { "type": "string" }
+      },
+      "required": ["id", "date", "classId", "type", "quantity", "teacherId"]
+    },
+    "FoodWaste": {
+      "title": "Desperdício de Merenda",
+      "description": "Monitoramento de sobras orgânicas da merenda escolar.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "menu": { "type": "string" },
+        "quantity": { "type": "number" },
+        "classId": { "type": "string" },
+        "adminId": { "type": "string" }
+      },
+      "required": ["id", "date", "menu", "quantity", "classId", "adminId"]
+    },
+    "Mission": {
+      "title": "Missão",
+      "description": "Desafio ambiental proposto.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "points": { "type": "number" },
+        "active": { "type": "boolean" },
+        "difficulty": { "type": "string", "enum": ["Iniciante", "Intermediário", "Avançado"] }
+      },
+      "required": ["id", "title", "description", "points", "active", "difficulty"]
+    },
+    "VisualLog": {
+      "title": "Registro Visual",
+      "description": "Foto ou vídeo de uma atividade ambiental.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "mediaType": { "type": "string", "enum": ["image", "video"] },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "likes": { "type": "number" },
+        "feedbacks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "text": { "type": "string" },
+              "userName": { "type": "string" },
+              "date": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["id", "date", "title", "mediaUrl", "mediaType", "teacherId"]
+    },
+    "Video": {
+      "title": "Vídeo Educativo",
+      "description": "Vídeo do YouTube para educação ambiental.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "youtubeId": { "type": "string" },
+        "addedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "youtubeId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Dados do perfil do professor."
+    },
+    "/classes/{classId}": {
+      "schema": "ClassTeam",
+      "description": "Todas as turmas cadastradas na escola."
+    },
+    "/entries/{entryId}": {
+      "schema": "ResidueEntry",
+      "description": "Registros de coleta de resíduos."
+    },
+    "/missions/{missionId}": {
+      "schema": "Mission",
+      "description": "Missões ambientais ativas e históricas."
+    },
+    "/logs/{logId}": {
+      "schema": "VisualLog",
+      "description": "Galeria de fotos e vídeos."
+    },
+    "/foodWaste/{wasteId}": {
+      "schema": "FoodWaste",
+      "description": "Registros de desperdício de merenda."
+    },
+    "/videos/{videoId}": {
+      "schema": "Video",
+      "description": "Galeria de vídeos educativos de fonte externa."
+    }
+  }
+}

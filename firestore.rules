@@ -1,0 +1,165 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'faustolsm@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Schema Validations ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'name', 'email']) &&
+             data.keys().size() <= 6 &&
+             data.id == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 100;
+    }
+
+    function isValidClass(data) {
+      return data.keys().hasAll(['id', 'name', 'teamName', 'points', 'teacherId', 'teacherName']) &&
+             data.keys().size() <= 8 &&
+             data.name is string && data.name.size() <= 50 &&
+             data.teamName is string && data.teamName.size() <= 50 &&
+             data.teacherName is string &&
+             data.points is number;
+    }
+
+    function isValidEntry(data) {
+      return data.keys().hasAll(['id', 'date', 'classId', 'type', 'quantity', 'teacherId']) &&
+             data.keys().size() <= 6 &&
+             data.teacherId == request.auth.uid &&
+             data.classId is string &&
+             data.type in ['Plástico', 'Papel', 'Vidro', 'Metal', 'Outros'] &&
+             data.quantity is number && data.quantity >= 0;
+    }
+
+    function isValidMission(data) {
+      return data.keys().hasAll(['id', 'title', 'description', 'points', 'active', 'difficulty']) &&
+             data.keys().size() <= 6 &&
+             data.title is string && data.title.size() <= 100 &&
+             data.description is string && data.description.size() <= 500 &&
+             data.points is number &&
+             data.active is bool &&
+             data.difficulty in ['Iniciante', 'Intermediário', 'Avançado'];
+    }
+
+    function isValidLog(data) {
+      return data.keys().hasAll(['id', 'date', 'title', 'description', 'mediaUrl', 'mediaType', 'teacherId', 'teacherName']) &&
+             data.keys().size() <= 10 &&
+             data.teacherId == request.auth.uid &&
+             data.title is string && data.title.size() <= 100 &&
+             data.mediaUrl is string && data.mediaUrl.size() <= 1000000 &&
+             data.mediaType in ['image', 'video'];
+    }
+
+    function isValidFoodWaste(data) {
+      return data.keys().hasAll(['id', 'date', 'menu', 'quantity', 'adminId', 'classId']) &&
+             data.keys().size() <= 6 &&
+             data.menu is string && data.menu.size() <= 200 &&
+             data.quantity is number && data.quantity >= 0 &&
+             data.adminId == request.auth.uid;
+    }
+
+    function isValidVideo(data) {
+      return data.keys().hasAll(['id', 'title', 'youtubeId', 'addedAt']) &&
+             data.keys().size() <= 4 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.youtubeId is string && data.youtubeId.size() <= 50;
+    }
+
+    // --- Matches ---
+
+    match /users/{userId} {
+      allow get, list: if true;
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'school', 'photoURL']) ||
+        (request.auth.token.email == 'faustolsm@gmail.com' && incoming().role == 'admin')
+      );
+    }
+
+    match /classes/{classId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidClass(incoming()) && isValidId(classId);
+      allow update: if isSignedIn() && (
+        (isOwner(existing().teacherId) && isValidClass(incoming()) && (
+          // Action: Edit Profile (Points must remain same)
+          (incoming().diff(existing()).affectedKeys().hasOnly(['name', 'teamName']) && incoming().points == existing().points) ||
+          // Action: Record Entry (Points +5)
+          (incoming().diff(existing()).affectedKeys().hasOnly(['points']) && incoming().points == existing().points + 5) ||
+          // Action: Mission Completion (Specific points)
+          (incoming().diff(existing()).affectedKeys().hasOnly(['points']) && incoming().points > existing().points)
+        )) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /entries/{entryId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidEntry(incoming()) && isValidId(entryId) &&
+                    exists(/databases/$(database)/documents/classes/$(incoming().classId));
+      allow update: if (isOwner(existing().teacherId) || isAdmin()) && isValidEntry(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['type', 'quantity', 'date']);
+      allow delete: if isOwner(existing().teacherId) || isAdmin();
+    }
+
+    match /missions/{missionId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidMission(incoming()) && isValidId(missionId);
+      allow delete: if isAdmin();
+    }
+
+    match /logs/{logId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidLog(incoming()) && isValidId(logId);
+      allow update: if (isSignedIn() && (
+        ((isOwner(existing().teacherId) || isAdmin()) && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'mediaUrl', 'mediaType'])
+        )) ||
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likes', 'feedbacks']))
+      ));
+      allow delete: if (isOwner(existing().teacherId) || isAdmin());
+    }
+
+    match /foodWaste/{wasteId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidFoodWaste(incoming()) && isValidId(wasteId);
+      allow delete: if isAdmin();
+    }
+
+    match /videos/{videoId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() && isValidVideo(incoming()) && isValidId(videoId);
+    }
+  }
+}
