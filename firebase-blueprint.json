@@ -109,6 +109,19 @@
         "addedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "title", "youtubeId"]
+    },
+    "RemoteSession": {
+      "title": "Sessão Remota",
+      "description": "Sessão de controle remoto para apresentações.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "active": { "type": "boolean" },
+        "command": { "type": "string" },
+        "payload": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "active"]
     }
   },
   "firestore": {
@@ -139,6 +152,10 @@
     "/videos/{videoId}": {
       "schema": "Video",
       "description": "Galeria de vídeos educativos de fonte externa."
+    },
+    "/remote_sessions/{sessionId}": {
+      "schema": "RemoteSession",
+      "description": "Comandos de controle remoto em tempo real."
     }
   }
 }

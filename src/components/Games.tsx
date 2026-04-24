@@ -3,11 +3,15 @@ import { Card, Button } from './UI';
 import { 
   Gamepad2, Recycle, Leaf, Search, Trophy, RotateCcw, 
   Timer, Heart, ArrowLeft, ArrowRight, CheckCircle2, XCircle, HelpCircle, AlertCircle, Info, MapPin, Users,
-  Volume2, VolumeX, Smartphone, Music, Construction, Megaphone, Bird
+  Volume2, VolumeX, Smartphone, Music, Construction, Megaphone, Bird, X, PlayCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { QRCodeSVG } from 'qrcode.react';
+import { doc, onSnapshot, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import { ClassTeam } from '../types';
+import QRScanner from './QRScanner';
 
 type GameType = 'ecology' | 'sorting' | 'detective' | 'silence' | null;
 
@@ -20,8 +24,81 @@ interface GamesProps {
 
 export default function Games({ classes, addGamePoints, profile, isAdmin }: GamesProps) {
   const [activeGame, setActiveGame] = useState<GameType>(null);
+  const [showScanner, setShowScanner] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [sessionPoints, setSessionPoints] = useState(0);
+
+  // Remote Control State
+  const [remoteSessionId, setRemoteSessionId] = useState<string | null>(null);
+  const [isRemoteMode, setIsRemoteMode] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const remoteId = params.get('remote');
+    if (remoteId && params.get('tab') === 'games') {
+      setRemoteSessionId(remoteId);
+      setIsRemoteMode(true);
+    }
+  }, []);
+
+  // Monitor Logic
+  useEffect(() => {
+    if (!remoteSessionId || isRemoteMode) return;
+
+    const sessionRef = doc(db, 'remote_sessions', remoteSessionId);
+    
+    setDoc(sessionRef, { 
+      active: true, 
+      command: null, 
+      timestamp: Date.now(),
+      view: 'games'
+    });
+
+    const unsubscribe = onSnapshot(sessionRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data.command) {
+          handleRemoteCommand(data.command, data.payload);
+          updateDoc(sessionRef, { command: null });
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      deleteDoc(sessionRef);
+    };
+  }, [remoteSessionId, isRemoteMode]);
+
+  const handleRemoteCommand = (command: string, payload?: any) => {
+    switch (command) {
+      case 'START_GAME':
+        setActiveGame(payload as GameType);
+        break;
+      case 'EXIT_GAME':
+        setActiveGame(null);
+        break;
+      case 'GAME_ACTION':
+        // Generic event listener for game-specific components to pick up
+        window.dispatchEvent(new CustomEvent('eco-game-remote-action', { detail: payload }));
+        break;
+    }
+  };
+
+  const startRemoteSession = () => {
+    const id = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setRemoteSessionId(id);
+  };
+
+  const sendRemoteCommand = async (command: string, payload?: any) => {
+    if (!remoteSessionId) return;
+    const sessionRef = doc(db, 'remote_sessions', remoteSessionId);
+    await updateDoc(sessionRef, { 
+      command, 
+      payload: payload || null,
+      timestamp: Date.now() 
+    });
+  };
 
   useEffect(() => {
     if (profile && !isAdmin) {
@@ -54,11 +131,121 @@ export default function Games({ classes, addGamePoints, profile, isAdmin }: Game
     { id: 'silence', title: 'Missão Silêncio', icon: Volume2, color: 'bg-sky-500', desc: 'Identifique e controle a poluição sonora!' }
   ];
 
+  const handleScan = (data: string) => {
+    if (data && data.startsWith(window.location.origin)) {
+      window.location.href = data;
+    } else {
+      alert('QR Code inválido ou não pertence a esta plataforma.');
+    }
+  };
+
+  if (isRemoteMode) {
+    return (
+      <div className="fixed inset-0 bg-emerald-950 z-[200] flex flex-col p-8 safe-bottom">
+        <header className="flex justify-between items-center mb-12">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-black text-white tracking-tight uppercase">
+              Controle Games
+            </h2>
+            <p className="text-lime-400 font-bold uppercase tracking-widest text-[10px]">Sessão: {remoteSessionId}</p>
+          </div>
+          <Gamepad2 className="text-lime-400 w-8 h-8" />
+        </header>
+
+        <div className="flex-1 flex flex-col gap-4 overflow-y-auto pb-10">
+          {!activeGame ? (
+            <>
+              <p className="text-[10px] font-black uppercase text-emerald-500 tracking-widest mb-2">Escolha um Jogo:</p>
+              <div className="grid grid-cols-1 gap-4">
+                {gameCards.map(game => (
+                  <button 
+                    key={game.id}
+                    onClick={() => {
+                      setActiveGame(game.id as GameType);
+                      sendRemoteCommand('START_GAME', game.id);
+                    }}
+                    className={cn(
+                      "w-full p-6 rounded-3xl flex items-center gap-4 transition-all active:scale-95 text-white",
+                      game.color
+                    )}
+                  >
+                    <game.icon className="w-8 h-8" />
+                    <span className="font-black uppercase tracking-tight">{game.title}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="space-y-8">
+              <div className="bg-white/10 p-6 rounded-3xl text-center">
+                 <p className="text-[10px] font-black uppercase text-emerald-400 tracking-widest mb-1">Jogo Ativo</p>
+                 <p className="text-xl font-black text-white uppercase tracking-tighter">
+                   {gameCards.find(g => g.id === activeGame)?.title}
+                 </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={() => sendRemoteCommand('GAME_ACTION', 'A')}
+                  className="aspect-square bg-white text-emerald-900 rounded-[2.5rem] flex flex-col items-center justify-center gap-2 active:bg-emerald-50 shadow-xl"
+                >
+                  <span className="text-4xl font-black">A</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Opção 1</span>
+                </button>
+                <button 
+                  onClick={() => sendRemoteCommand('GAME_ACTION', 'B')}
+                  className="aspect-square bg-white text-emerald-900 rounded-[2.5rem] flex flex-col items-center justify-center gap-2 active:bg-emerald-50 shadow-xl"
+                >
+                  <span className="text-4xl font-black">B</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Opção 2</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={() => sendRemoteCommand('GAME_ACTION', 'PREV')}
+                  className="p-6 bg-emerald-800 text-white rounded-2xl flex items-center justify-center active:bg-emerald-700"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={() => sendRemoteCommand('GAME_ACTION', 'NEXT')}
+                  className="p-6 bg-emerald-800 text-white rounded-2xl flex items-center justify-center active:bg-emerald-700"
+                >
+                  <ArrowRight className="w-6 h-6" />
+                </button>
+              </div>
+
+              <button 
+                onClick={() => {
+                  setActiveGame(null);
+                  sendRemoteCommand('EXIT_GAME');
+                }}
+                className="w-full bg-rose-600/20 text-rose-500 border-2 border-rose-500/20 rounded-2xl p-6 font-black uppercase tracking-widest text-xs"
+              >
+                Encerrar Jogo
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!activeGame) {
     const selectedClass = classes.find(c => c.id === selectedClassId);
 
     return (
       <div className="space-y-12 pb-12">
+        <AnimatePresence>
+          {showScanner && (
+            <QRScanner 
+              onScan={handleScan} 
+              onClose={() => setShowScanner(false)} 
+            />
+          )}
+        </AnimatePresence>
+
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-emerald-950 tracking-tighter uppercase underline decoration-lime-400 decoration-8 underline-offset-8 transition-all">
@@ -67,7 +254,43 @@ export default function Games({ classes, addGamePoints, profile, isAdmin }: Game
             <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mt-6">Aprender brincando é o nosso lema!</p>
           </div>
           
-          <div className="flex flex-col gap-2 items-end">
+          <div className="flex items-center gap-6">
+             <div className="flex items-center gap-4">
+              {!remoteSessionId ? (
+                <>
+                  {/* Desktop Only */}
+                  <Button 
+                    variant="outline"
+                    onClick={startRemoteSession}
+                    className="hidden md:flex rounded-2xl border-2 border-emerald-100 h-14 px-6 text-xs tracking-widest bg-white"
+                  >
+                    <Smartphone className="w-4 h-4 mr-2 text-emerald-500" /> CONTROLE REMOTO
+                  </Button>
+                  
+                  {/* Mobile Scanner trigger */}
+                  <button 
+                    onClick={() => setShowScanner(true)}
+                    className="md:hidden p-4 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100"
+                  >
+                    <Smartphone className="w-5 h-5" />
+                  </button>
+                </>
+              ) : (
+                <div className="flex items-center gap-4 bg-emerald-50 p-2 pl-4 rounded-2xl border border-emerald-100">
+                  <div className="flex flex-col">
+                    <span className="text-[8px] font-black uppercase text-emerald-600 tracking-tighter">Sessão Ativa</span>
+                    <span className="text-sm font-black text-stone-900">{remoteSessionId}</span>
+                  </div>
+                  <button 
+                    onClick={() => setRemoteSessionId(null)}
+                    className="p-2 hover:bg-white rounded-lg transition-all"
+                  >
+                    <X className="w-4 h-4 text-stone-400" />
+                  </button>
+                </div>
+              )}
+            </div>
+            
             <div className="flex items-center gap-4">
               <div className="text-right">
                 <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Sessão Atual</p>
@@ -87,6 +310,32 @@ export default function Games({ classes, addGamePoints, profile, isAdmin }: Game
             )}
           </div>
         </div>
+
+        <AnimatePresence>
+          {remoteSessionId && !isRemoteMode && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed bottom-10 right-10 z-[150] group hidden md:block"
+            >
+              <Card className="p-6 bg-white shadow-2xl border-4 border-emerald-500 rounded-[2.5rem] flex flex-col items-center gap-4">
+                <div className="p-4 bg-white rounded-2xl">
+                  <QRCodeSVG 
+                    value={`${window.location.origin}${window.location.pathname}?tab=games&remote=${remoteSessionId}`} 
+                    size={150}
+                    level="H"
+                    includeMargin
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest mb-1">Controle pelo Celular</p>
+                  <p className="text-sm font-black text-stone-900">Modo Professor</p>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <Card className="p-6 bg-white border-2 border-stone-100">
           <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -260,6 +509,19 @@ function EcologyGame({ onComplete, onExit }: { onComplete: (s: number) => void, 
       }
     }, 2500);
   };
+
+  useEffect(() => {
+    const handleRemoteAction = (e: any) => {
+      if (gameState !== 'playing') return;
+      const action = e.detail;
+      const options = [situations[step].c, situations[step].i].sort();
+      if (action === 'A') handleChoice(options[0] === situations[step].c);
+      if (action === 'B') handleChoice(options[1] === situations[step].c);
+    };
+
+    window.addEventListener('eco-game-remote-action', handleRemoteAction);
+    return () => window.removeEventListener('eco-game-remote-action', handleRemoteAction);
+  }, [gameState, step]);
 
   if (gameState === 'intro') return (
     <div className="text-center space-y-8 py-12">
@@ -519,6 +781,21 @@ function DetectiveGame({ onComplete, onExit }: { onComplete: (s: number) => void
       ]
     }
   ];
+
+  useEffect(() => {
+    const handleRemoteAction = (e: any) => {
+      const action = e.detail;
+      if (gameState === 'solution') {
+        if (action === 'A') handleSolutionSelect(current.solutions[0]);
+        if (action === 'B') handleSolutionSelect(current.solutions[1]);
+      } else if (gameState === 'feedback') {
+        if (action === 'NEXT') nextRound();
+      }
+    };
+
+    window.addEventListener('eco-game-remote-action', handleRemoteAction);
+    return () => window.removeEventListener('eco-game-remote-action', handleRemoteAction);
+  }, [gameState, round]);
 
   const handleLevelClick = (errorId: number) => {
     if (gameState !== 'investigating') return;

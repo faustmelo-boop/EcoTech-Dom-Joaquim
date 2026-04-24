@@ -57,6 +57,20 @@ function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showTeacherArea, setShowTeacherArea] = useState(false);
+
+  // Handle URL Parameters (Remote Control & Tab)
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab') as View;
+    const remote = params.get('remote');
+
+    if (tab) {
+      setCurrentView(tab);
+      if (remote) {
+        setShowTeacherArea(true); // Bypass to teacher container
+      }
+    }
+  }, []);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
@@ -119,7 +133,10 @@ function AppContent() {
   }
 
   // PUBLIC VIEW (Children/Dashboard)
-  if (!showTeacherArea && !user) {
+  const params = new URLSearchParams(window.location.search);
+  const isRemote = params.get('remote') && (params.get('tab') === 'play' || params.get('tab') === 'games');
+
+  if (!showTeacherArea && !user && !isRemote) {
     return (
       <WelcomeDashboard 
         classes={ecoState.classes} 
@@ -129,7 +146,7 @@ function AppContent() {
   }
 
   // TEACHER LOGIN VIEW
-  if (showTeacherArea && !user) {
+  if (showTeacherArea && !user && !isRemote) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 relative overflow-hidden">
         {/* Abstract Background Shapes */}
