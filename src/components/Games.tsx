@@ -3,7 +3,7 @@ import { Card, Button } from './UI';
 import { 
   Gamepad2, Recycle, Leaf, Search, Trophy, RotateCcw, 
   Timer, Heart, ArrowLeft, ArrowRight, CheckCircle2, XCircle, HelpCircle, AlertCircle, Info, MapPin, Users,
-  Volume2, VolumeX, Smartphone, Music, Construction, Megaphone, Bird, X, PlayCircle
+  Volume2, VolumeX, Smartphone, Music, Construction, Megaphone, Bird, X, PlayCircle, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -11,9 +11,8 @@ import { doc, onSnapshot, setDoc, updateDoc, deleteDoc } from 'firebase/firestor
 import { db } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import { ClassTeam } from '../types';
-import QRScanner from './QRScanner';
 
-type GameType = 'ecology' | 'sorting' | 'detective' | 'silence' | null;
+type GameType = 'ecology' | 'sorting' | 'silence' | null;
 
 interface GamesProps {
   classes: ClassTeam[];
@@ -24,8 +23,17 @@ interface GamesProps {
 
 export default function Games({ classes, addGamePoints, profile, isAdmin }: GamesProps) {
   const [activeGame, setActiveGame] = useState<GameType>(null);
-  const [showScanner, setShowScanner] = useState(false);
+  const [showCodeInput, setShowCodeInput] = useState(false);
+  const [manualCode, setManualCode] = useState('');
   const [selectedClassId, setSelectedClassId] = useState<string>('');
+
+  const handleManualConnect = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (manualCode.length === 6) {
+      const url = `${window.location.origin}${window.location.pathname}?tab=games&remote=${manualCode.toUpperCase()}`;
+      window.location.href = url;
+    }
+  };
   const [sessionPoints, setSessionPoints] = useState(0);
 
   // Remote Control State
@@ -46,27 +54,33 @@ export default function Games({ classes, addGamePoints, profile, isAdmin }: Game
     if (!remoteSessionId || isRemoteMode) return;
 
     const sessionRef = doc(db, 'remote_sessions', remoteSessionId);
+    console.log('Monitor Games: Iniciando sessão', remoteSessionId);
     
     setDoc(sessionRef, { 
       active: true, 
       command: null, 
       timestamp: Date.now(),
       view: 'games'
-    });
+    }).catch(err => console.error("Erro ao criar sessão remota games:", err));
 
     const unsubscribe = onSnapshot(sessionRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
+        console.log('Monitor Games: Dados recebidos', data);
         if (data.command) {
           handleRemoteCommand(data.command, data.payload);
-          updateDoc(sessionRef, { command: null });
+          setTimeout(() => {
+            updateDoc(sessionRef, { command: null }).catch(() => {});
+          }, 100);
         }
       }
+    }, (error) => {
+      console.error("Erro no onSnapshot games:", error);
     });
 
     return () => {
+      console.log('Monitor Games: Limpando escuta');
       unsubscribe();
-      deleteDoc(sessionRef);
     };
   }, [remoteSessionId, isRemoteMode]);
 
@@ -92,12 +106,18 @@ export default function Games({ classes, addGamePoints, profile, isAdmin }: Game
 
   const sendRemoteCommand = async (command: string, payload?: any) => {
     if (!remoteSessionId) return;
+    console.log('Controller Games: Enviando comando', command, payload);
     const sessionRef = doc(db, 'remote_sessions', remoteSessionId);
-    await updateDoc(sessionRef, { 
-      command, 
-      payload: payload || null,
-      timestamp: Date.now() 
-    });
+    try {
+      await setDoc(sessionRef, { 
+        command, 
+        payload: payload || null,
+        timestamp: Date.now(),
+        active: true
+      }, { merge: true });
+    } catch (err) {
+      console.error("Erro ao enviar comando remoto games:", err);
+    }
   };
 
   useEffect(() => {
@@ -127,107 +147,180 @@ export default function Games({ classes, addGamePoints, profile, isAdmin }: Game
   const gameCards = [
     { id: 'ecology', title: 'Salve a Natureza', icon: Leaf, color: 'bg-emerald-500', desc: 'Faça as escolhas certas para o planeta!' },
     { id: 'sorting', title: 'Separe o Lixo', icon: Recycle, color: 'bg-blue-500', desc: 'Coloque cada lixo na lixeira certa.' },
-    { id: 'detective', title: 'Detetives do Lixo', icon: Search, color: 'bg-purple-500', desc: 'Investigue e resolva problemas ambientais!' },
     { id: 'silence', title: 'Missão Silêncio', icon: Volume2, color: 'bg-sky-500', desc: 'Identifique e controle a poluição sonora!' }
   ];
 
-  const handleScan = (data: string) => {
-    if (data && data.startsWith(window.location.origin)) {
-      window.location.href = data;
-    } else {
-      alert('QR Code inválido ou não pertence a esta plataforma.');
-    }
-  };
-
   if (isRemoteMode) {
     return (
-      <div className="fixed inset-0 bg-emerald-950 z-[200] flex flex-col p-8 safe-bottom">
-        <header className="flex justify-between items-center mb-12">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-black text-white tracking-tight uppercase">
-              Controle Games
+      <div className="fixed inset-0 bg-stone-50 z-[200] flex flex-col safe-bottom">
+        <div className="absolute top-0 inset-x-0 h-48 bg-emerald-600 rounded-b-[3rem] -z-10 shadow-2xl shadow-emerald-900/10" />
+        
+        <header className="p-8 pb-4 flex justify-between items-center text-white">
+          <div className="space-y-0.5">
+            <h2 className="text-xl font-black tracking-tight uppercase leading-none">
+              Eco Control
             </h2>
-            <p className="text-lime-400 font-bold uppercase tracking-widest text-[10px]">Sessão: {remoteSessionId}</p>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-lime-400 rounded-full animate-pulse" />
+              <p className="text-emerald-100 font-bold uppercase tracking-widest text-[8px]">Sessão Ativa: {remoteSessionId}</p>
+            </div>
           </div>
-          <Gamepad2 className="text-lime-400 w-8 h-8" />
+          <div className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-md">
+            <Gamepad2 className="text-white w-6 h-6" />
+          </div>
         </header>
-
-        <div className="flex-1 flex flex-col gap-4 overflow-y-auto pb-10">
+        
+        <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto no-scrollbar">
           {!activeGame ? (
-            <>
-              <p className="text-[10px] font-black uppercase text-emerald-500 tracking-widest mb-2">Escolha um Jogo:</p>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-center py-2">
+                <span className="text-[10px] font-black uppercase text-stone-400 tracking-[0.2em] bg-stone-100 px-4 py-1.5 rounded-full">Selecione o Jogo</span>
+              </div>
               <div className="grid grid-cols-1 gap-4">
-                {gameCards.map(game => (
-                  <button 
+                {gameCards.map((game, idx) => (
+                  <motion.button 
                     key={game.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1 }}
                     onClick={() => {
                       setActiveGame(game.id as GameType);
                       sendRemoteCommand('START_GAME', game.id);
                     }}
                     className={cn(
-                      "w-full p-6 rounded-3xl flex items-center gap-4 transition-all active:scale-95 text-white",
+                      "group w-full p-5 rounded-[2rem] flex items-center gap-4 transition-all active:scale-[0.97] text-white shadow-xl relative overflow-hidden",
                       game.color
                     )}
                   >
-                    <game.icon className="w-8 h-8" />
-                    <span className="font-black uppercase tracking-tight">{game.title}</span>
-                  </button>
+                    <div className="bg-white/20 p-3 rounded-2xl group-active:scale-90 transition-transform">
+                      <game.icon className="w-7 h-7" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <span className="block font-black uppercase tracking-tight text-lg leading-none">{game.title}</span>
+                      <span className="text-[9px] font-bold opacity-80 uppercase tracking-widest mt-1">Clique para Iniciar</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 opacity-50" />
+                  </motion.button>
                 ))}
               </div>
-            </>
+            </motion.div>
           ) : (
-            <div className="space-y-8">
-              <div className="bg-white/10 p-6 rounded-3xl text-center">
-                 <p className="text-[10px] font-black uppercase text-emerald-400 tracking-widest mb-1">Jogo Ativo</p>
-                 <p className="text-xl font-black text-white uppercase tracking-tighter">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="space-y-6 flex-1 flex flex-col"
+            >
+              <div className="bg-white p-6 rounded-[2.5rem] border-2 border-stone-100 shadow-xl text-center space-y-1 relative overflow-hidden">
+                 <div className={cn("absolute right-0 top-0 w-2 h-full opacity-50", gameCards.find(g => g.id === activeGame)?.color)} />
+                 <p className="text-[9px] font-black uppercase text-stone-400 tracking-widest">Jogo em Curso</p>
+                 <p className="text-xl font-black text-stone-900 uppercase tracking-tighter">
                    {gameCards.find(g => g.id === activeGame)?.title}
                  </p>
               </div>
+              
+              {/* Main Game Controls - Enhanced visual of a controller */}
+              <div className="flex-1 flex flex-col justify-center gap-8">
+                {activeGame === 'sorting' ? (
+                  <div className="grid grid-cols-2 gap-6 pb-4">
+                    <motion.button 
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => sendRemoteCommand('GAME_ACTION', 'blue')}
+                      className="aspect-square bg-blue-600 text-white rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-xl active:bg-blue-700"
+                    >
+                      <Recycle className="w-10 h-10" />
+                      <span className="text-[10px] font-black uppercase tracking-widest leading-none">Papel</span>
+                    </motion.button>
+                    <motion.button 
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => sendRemoteCommand('GAME_ACTION', 'red')}
+                      className="aspect-square bg-red-600 text-white rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-xl active:bg-red-700"
+                    >
+                      <Recycle className="w-10 h-10" />
+                      <span className="text-[10px] font-black uppercase tracking-widest leading-none">Plástico</span>
+                    </motion.button>
+                    <motion.button 
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => sendRemoteCommand('GAME_ACTION', 'green')}
+                      className="aspect-square bg-green-600 text-white rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-xl active:bg-green-700"
+                    >
+                      <Recycle className="w-10 h-10" />
+                      <span className="text-[10px] font-black uppercase tracking-widest leading-none">Vidro</span>
+                    </motion.button>
+                    <motion.button 
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => sendRemoteCommand('GAME_ACTION', 'yellow')}
+                      className="aspect-square bg-yellow-600 text-white rounded-[2.5rem] flex flex-col items-center justify-center gap-3 shadow-xl active:bg-yellow-700"
+                    >
+                      <Recycle className="w-10 h-10" />
+                      <span className="text-[10px] font-black uppercase tracking-widest leading-none">Metal</span>
+                    </motion.button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-6">
+                      <motion.button 
+                        whileTap={{ scale: 0.9, backgroundColor: '#f0fdf4' }}
+                        onClick={() => sendRemoteCommand('GAME_ACTION', 'A')}
+                        className="aspect-square bg-white border-2 border-stone-100 text-stone-900 rounded-[3.5rem] flex flex-col items-center justify-center gap-3 shadow-[0_15px_30px_-5px_rgba(0,0,0,0.05)] active:shadow-inner transition-all group"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl font-black group-active:scale-90 transition-transform">A</div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Opção 1</span>
+                      </motion.button>
+                      <motion.button 
+                        whileTap={{ scale: 0.9, backgroundColor: '#f0fdf4' }}
+                        onClick={() => sendRemoteCommand('GAME_ACTION', 'B')}
+                        className="aspect-square bg-white border-2 border-stone-100 text-stone-900 rounded-[3.5rem] flex flex-col items-center justify-center gap-3 shadow-[0_15px_30px_-5px_rgba(0,0,0,0.05)] active:shadow-inner transition-all group"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl font-black group-active:scale-90 transition-transform">B</div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Opção 2</span>
+                      </motion.button>
+                    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <button 
-                  onClick={() => sendRemoteCommand('GAME_ACTION', 'A')}
-                  className="aspect-square bg-white text-emerald-900 rounded-[2.5rem] flex flex-col items-center justify-center gap-2 active:bg-emerald-50 shadow-xl"
-                >
-                  <span className="text-4xl font-black">A</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Opção 1</span>
-                </button>
-                <button 
-                  onClick={() => sendRemoteCommand('GAME_ACTION', 'B')}
-                  className="aspect-square bg-white text-emerald-900 rounded-[2.5rem] flex flex-col items-center justify-center gap-2 active:bg-emerald-50 shadow-xl"
-                >
-                  <span className="text-4xl font-black">B</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Opção 2</span>
-                </button>
+                    <div className="flex items-center justify-between gap-6 px-4">
+                      <motion.button 
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => sendRemoteCommand('GAME_ACTION', 'PREV')}
+                        className="w-full h-20 bg-stone-100 text-stone-600 rounded-[2rem] flex items-center justify-center active:bg-stone-200 transition-all shadow-lg"
+                      >
+                        <ArrowLeft className="w-8 h-8" />
+                      </motion.button>
+                      <motion.button 
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => sendRemoteCommand('GAME_ACTION', 'NEXT')}
+                        className="w-full h-20 bg-stone-100 text-stone-600 rounded-[2rem] flex items-center justify-center active:bg-stone-200 transition-all shadow-lg"
+                      >
+                        <ArrowRight className="w-8 h-8" />
+                      </motion.button>
+                    </div>
+                  </>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="pt-6 mt-auto">
                 <button 
-                  onClick={() => sendRemoteCommand('GAME_ACTION', 'PREV')}
-                  className="p-6 bg-emerald-800 text-white rounded-2xl flex items-center justify-center active:bg-emerald-700"
+                  onClick={() => {
+                    setActiveGame(null);
+                    sendRemoteCommand('EXIT_GAME');
+                  }}
+                  className="w-full h-16 bg-stone-900 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
-                  <ArrowLeft className="w-6 h-6" />
-                </button>
-                <button 
-                  onClick={() => sendRemoteCommand('GAME_ACTION', 'NEXT')}
-                  className="p-6 bg-emerald-800 text-white rounded-2xl flex items-center justify-center active:bg-emerald-700"
-                >
-                  <ArrowRight className="w-6 h-6" />
+                  <X className="w-4 h-4" /> Finalizar Atividade
                 </button>
               </div>
-
-              <button 
-                onClick={() => {
-                  setActiveGame(null);
-                  sendRemoteCommand('EXIT_GAME');
-                }}
-                className="w-full bg-rose-600/20 text-rose-500 border-2 border-rose-500/20 rounded-2xl p-6 font-black uppercase tracking-widest text-xs"
-              >
-                Encerrar Jogo
-              </button>
-            </div>
+            </motion.div>
           )}
         </div>
+
+        <footer className="p-8 pt-0 flex flex-col items-center gap-2 opacity-40">
+          <div className="h-1 w-12 bg-stone-300 rounded-full mb-2" />
+          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-stone-600">
+            EcoTech Mobile Control
+          </p>
+        </footer>
       </div>
     );
   }
@@ -236,173 +329,241 @@ export default function Games({ classes, addGamePoints, profile, isAdmin }: Game
     const selectedClass = classes.find(c => c.id === selectedClassId);
 
     return (
-      <div className="space-y-12 pb-12">
+      <div className="space-y-10 pb-20 no-scrollbar">
         <AnimatePresence>
-          {showScanner && (
-            <QRScanner 
-              onScan={handleScan} 
-              onClose={() => setShowScanner(false)} 
-            />
+          {showCodeInput && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-[200] flex items-center justify-center p-6 px-4"
+            >
+              <motion.div 
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                className="bg-white rounded-[3rem] w-full max-w-sm shadow-2xl p-8 outline-none"
+              >
+                <div className="flex justify-between items-start mb-8">
+                  <div className="space-y-1">
+                    <h3 className="text-2xl font-black text-stone-900 leading-none">CONECTAR</h3>
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] leading-none mt-1">CÓDIGO DO DISPOSITIVO</p>
+                  </div>
+                  <button onClick={() => setShowCodeInput(false)} className="p-3 bg-stone-100 rounded-2xl text-stone-400 active:scale-90 transition-all">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleManualConnect} className="space-y-6">
+                  <div className="space-y-2">
+                    <input 
+                      type="text" 
+                      maxLength={6}
+                      value={manualCode}
+                      onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+                      placeholder="ABC123"
+                      className="w-full h-20 bg-stone-50 border-2 border-stone-100 focus:border-emerald-500 rounded-[2rem] text-center text-4xl font-black tracking-[0.2em] focus:outline-none transition-all placeholder:text-stone-200 placeholder:tracking-normal"
+                      autoFocus
+                    />
+                  </div>
+                  
+                  <Button 
+                    type="submit"
+                    disabled={manualCode.length !== 6}
+                    className="w-full h-16 rounded-[2rem] bg-emerald-600 font-black shadow-xl shadow-emerald-200 text-sm tracking-widest"
+                  >
+                    VINCULAR AGORA
+                  </Button>
+                </form>
+              </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-emerald-950 tracking-tighter uppercase underline decoration-lime-400 decoration-8 underline-offset-8 transition-all">
-              Eco Games
+        {/* Header Section */}
+        <div className="flex flex-col gap-8 md:flex-row md:items-end justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 w-fit rounded-full">
+              <Gamepad2 className="w-3 h-3 text-emerald-600" />
+              <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Atividades</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black text-stone-900 tracking-tighter uppercase leading-[0.9]">
+              ECO GAMES
             </h2>
-            <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mt-6">Aprender brincando é o nosso lema!</p>
+            <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] max-w-xs leading-relaxed">
+              Transforme lixo em aventura e aprendizado constante!
+            </p>
           </div>
           
-          <div className="flex items-center gap-6">
-             <div className="flex items-center gap-4">
-              {!remoteSessionId ? (
-                <>
-                  {/* Desktop Only */}
-                  <Button 
-                    variant="outline"
-                    onClick={startRemoteSession}
-                    className="hidden md:flex rounded-2xl border-2 border-emerald-100 h-14 px-6 text-xs tracking-widest bg-white"
-                  >
-                    <Smartphone className="w-4 h-4 mr-2 text-emerald-500" /> CONTROLE REMOTO
-                  </Button>
-                  
-                  {/* Mobile Scanner trigger */}
-                  <button 
-                    onClick={() => setShowScanner(true)}
-                    className="md:hidden p-4 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100"
-                  >
-                    <Smartphone className="w-5 h-5" />
-                  </button>
-                </>
-              ) : (
-                <div className="flex items-center gap-4 bg-emerald-50 p-2 pl-4 rounded-2xl border border-emerald-100">
-                  <div className="flex flex-col">
-                    <span className="text-[8px] font-black uppercase text-emerald-600 tracking-tighter">Sessão Ativa</span>
-                    <span className="text-sm font-black text-stone-900">{remoteSessionId}</span>
-                  </div>
-                  <button 
-                    onClick={() => setRemoteSessionId(null)}
-                    className="p-2 hover:bg-white rounded-lg transition-all"
-                  >
-                    <X className="w-4 h-4 text-stone-400" />
-                  </button>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="bg-white px-6 py-4 rounded-[2rem] border-2 border-stone-50 shadow-xl shadow-stone-200/50 flex items-center gap-6">
               <div className="text-right">
-                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Sessão Atual</p>
+                <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-1">Pontos na Sessão</p>
                 <div className="flex items-center gap-2 justify-end">
-                  <Trophy className="w-4 h-4 text-amber-500" />
-                  <span className="font-black text-xl text-stone-900">{sessionPoints} pts</span>
+                  <span className="font-black text-2xl text-stone-900 tracking-tight">{sessionPoints}</span>
+                  <Trophy className="w-4 h-4 text-amber-500 fill-amber-500" />
                 </div>
               </div>
-              <div className="bg-emerald-100 p-4 rounded-3xl shrink-0">
-                <Gamepad2 className="w-8 h-8 text-emerald-700" />
+              <div className="bg-emerald-50 p-2.5 rounded-2xl">
+                <div className="bg-emerald-600 p-2 rounded-xl text-white shadow-lg">
+                   <Gamepad2 className="w-5 h-5" />
+                </div>
               </div>
             </div>
-            {selectedClass && (
-              <Badge className="bg-purple-100 text-purple-700 border-purple-200">
-                {selectedClass.name} - {selectedClass.teamName}
-              </Badge>
-            )}
           </div>
         </div>
 
+        {/* Remote Control & Class Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Class Card */}
+          <div className="bg-white p-6 rounded-[2.5rem] border border-stone-100 shadow-xl shadow-stone-200/30 flex items-center justify-between group">
+             <div className="flex items-center gap-4">
+                <div className="bg-purple-100 p-4 rounded-[1.5rem] group-hover:scale-110 transition-transform">
+                  <Users className="w-6 h-6 text-purple-600" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-[10px] font-black text-stone-400 uppercase tracking-widest leading-none mb-1.5">Equipe Ativa</h3>
+                  {profile?.role === 'teacher' ? (
+                    <div className="flex flex-col">
+                       <span className="font-black text-stone-900 text-lg leading-none">{classes.find(c => c.id === selectedClassId)?.name || 'Sem turma'}</span>
+                       <span className="text-[9px] font-bold text-stone-400 mt-1">{classes.find(c => c.id === selectedClassId)?.teamName || 'Selecione no painel'}</span>
+                    </div>
+                  ) : (
+                    <select 
+                      value={selectedClassId}
+                      onChange={(e) => setSelectedClassId(e.target.value)}
+                      className="bg-transparent font-black text-stone-900 outline-none cursor-pointer text-lg leading-none appearance-none"
+                    >
+                      <option value="">Escolher...</option>
+                      {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  )}
+                </div>
+             </div>
+             {(!selectedClassId || isAdmin) && <ChevronRight className="w-5 h-5 text-stone-200" />}
+          </div>
+
+          {/* Remote Info Card */}
+          {!remoteSessionId ? (
+            <button 
+              onClick={() => {
+                if (window.innerWidth < 768) setShowCodeInput(true);
+                else startRemoteSession();
+              }}
+              className="bg-emerald-600 p-6 rounded-[2.5rem] border border-emerald-400 shadow-xl shadow-emerald-200/50 flex items-center justify-between text-white group active:scale-[0.98] transition-all"
+            >
+              <div className="flex items-center gap-4">
+                 <div className="bg-white/20 p-4 rounded-[1.5rem]">
+                   <Smartphone className="w-6 h-6" />
+                 </div>
+                 <div className="text-left">
+                   <h3 className="text-[10px] font-black text-emerald-100 uppercase tracking-widest leading-none mb-1.5">Controle Remoto</h3>
+                   <p className="font-black text-lg leading-none">Vincular Celular</p>
+                 </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-emerald-200" />
+            </button>
+          ) : (
+            <div className="bg-emerald-50 p-6 rounded-[2.5rem] border border-emerald-100 shadow-xl flex items-center justify-between group">
+              <div className="flex items-center gap-4">
+                 <div className="bg-emerald-600 p-4 rounded-[1.5rem] text-white">
+                   <span className="font-black text-lg">{remoteSessionId}</span>
+                 </div>
+                 <div className="text-left">
+                   <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1.5">Sessão Ativa</h3>
+                   <p className="font-black text-stone-900 text-lg leading-none">Controle Conectado</p>
+                 </div>
+              </div>
+              <button 
+                onClick={() => setRemoteSessionId(null)}
+                className="p-3 bg-white rounded-2xl text-stone-300 hover:text-rose-500 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Remote QR (Desktop Overlay) */}
         <AnimatePresence>
           {remoteSessionId && !isRemoteMode && (
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed bottom-10 right-10 z-[150] group hidden md:block"
+              initial={{ opacity: 0, scale: 0.9, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.9, x: 20 }}
+              className="fixed bottom-24 right-10 z-[150] hidden md:block"
             >
-              <Card className="p-6 bg-white shadow-2xl border-4 border-emerald-500 rounded-[2.5rem] flex flex-col items-center gap-4">
-                <div className="p-4 bg-white rounded-2xl">
+              <Card className="p-6 bg-white shadow-2xl border-2 border-stone-100 rounded-[3rem] items-center text-center">
+                <div className="p-4 bg-white rounded-[2rem] border-4 border-stone-50 mb-4 inline-block">
                   <QRCodeSVG 
                     value={`${window.location.origin}${window.location.pathname}?tab=games&remote=${remoteSessionId}`} 
-                    size={150}
+                    size={160}
                     level="H"
-                    includeMargin
                   />
                 </div>
-                <div className="text-center">
-                  <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest mb-1">Controle pelo Celular</p>
-                  <p className="text-sm font-black text-stone-900">Modo Professor</p>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black uppercase text-stone-400 tracking-widest leading-none">Controle Remoto</p>
+                  <p className="text-lg font-black text-stone-900 leading-none">{remoteSessionId}</p>
                 </div>
               </Card>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <Card className="p-6 bg-white border-2 border-stone-100">
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="bg-purple-100 p-4 rounded-2xl">
-              <Users className="w-6 h-6 text-purple-600" />
-            </div>
-            <div className="flex-1">
-              <h4 className="font-black text-stone-900 uppercase tracking-tight">Turma Ativa</h4>
-              <p className="text-stone-500 text-xs font-bold uppercase tracking-widest">Os pontos serão registrados para sua equipe!</p>
-            </div>
-            {profile?.role === 'teacher' ? (
-              <div className="bg-emerald-50 px-6 py-4 rounded-2xl border-2 border-emerald-100 min-w-[256px] text-center">
-                <p className="font-black text-emerald-700 uppercase tracking-tighter">
-                  {classes.find(c => c.id === selectedClassId)?.name || 'Sem turma'}
-                </p>
-                <p className="text-[10px] font-black text-emerald-600/50 uppercase tracking-widest">Equipe: {classes.find(c => c.id === selectedClassId)?.teamName || '-'}</p>
-              </div>
-            ) : (
-              <select 
-                value={selectedClassId}
-                onChange={(e) => setSelectedClassId(e.target.value)}
-                disabled={!!profile && !isAdmin}
-                className="w-full sm:w-64 bg-stone-50 border-2 border-stone-100 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:border-purple-500 transition-colors disabled:opacity-75 disabled:cursor-not-allowed"
-              >
-                <option value="">Escolher turma...</option>
-                {classes.map(c => (
-                  <option key={c.id} value={c.id}>{c.name} - {c.teamName}</option>
-                ))}
-              </select>
-            )}
-          </div>
-        </Card>
-
-        {!selectedClassId && (
-          <div className="bg-amber-50 border-2 border-amber-200 p-6 rounded-3xl flex items-center gap-4">
-            <AlertCircle className="w-6 h-6 text-amber-600 shrink-0" />
-            <p className="text-amber-800 font-bold text-sm">Atenção detetives! Selecionem sua turma acima para que os pontos contem para o ranking oficial da escola!</p>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+        {/* Games Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {gameCards.map((game, idx) => (
             <motion.div
               key={game.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
+              whileHover={{ y: -8 }}
+              className="group"
             >
-              <Card 
-                className="p-8 h-full flex flex-col items-center text-center cursor-pointer hover:border-emerald-500 hover:shadow-2xl transition-all group overflow-hidden relative"
+              <div 
+                className="bg-white p-8 rounded-[3rem] border border-stone-100 shadow-xl shadow-stone-200/30 flex flex-col items-center text-center cursor-pointer transition-all hover:border-emerald-500 overflow-hidden relative active:scale-[0.98]"
                 onClick={() => setActiveGame(game.id as GameType)}
               >
-                <div className={cn("w-20 h-20 rounded-full flex items-center justify-center mb-6 text-white shadow-xl group-hover:scale-110 transition-transform", game.color)}>
+                <div className={cn(
+                  "w-24 h-24 rounded-[2rem] flex items-center justify-center mb-6 text-white shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-6",
+                  game.color
+                )}>
                   <game.icon className="w-10 h-10" />
                 </div>
-                <h3 className="text-2xl font-black text-stone-900 uppercase tracking-tighter mb-3">{game.title}</h3>
-                <p className="text-stone-500 text-sm font-medium mb-8 leading-relaxed">{game.desc}</p>
+                
+                <h3 className="text-2xl font-black text-stone-900 uppercase tracking-tighter mb-2">{game.title}</h3>
+                <p className="text-stone-400 text-xs font-bold leading-relaxed mb-8 px-4 opacity-80">{game.desc}</p>
+                
                 {lastResults[game.id] !== undefined && (
-                  <Badge className="absolute top-4 right-4 bg-lime-100 text-lime-700 border-lime-200">
-                    Recorde: {lastResults[game.id]}
-                  </Badge>
+                  <div className="absolute top-6 right-6 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+                    <span className="text-[10px] font-black text-emerald-600 block leading-none mb-1 uppercase tracking-tighter">Recorde</span>
+                    <span className="text-lg font-black text-emerald-700 leading-none">{lastResults[game.id]}</span>
+                  </div>
                 )}
-                <Button className={cn("w-full mt-auto rounded-full py-6 text-lg font-black", game.color)}>JOGAR AGORA</Button>
-              </Card>
+                
+                <div className={cn(
+                  "w-full h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black text-white shadow-xl transition-all",
+                  game.color
+                )}>
+                  <PlayCircle className="w-5 h-5" />
+                  <span className="text-sm tracking-widest uppercase">Começar</span>
+                </div>
+              </div>
             </motion.div>
           ))}
         </div>
+
+        {!selectedClassId && (
+          <div className="bg-amber-50 rounded-[2rem] p-6 border-2 border-dashed border-amber-200 flex items-center gap-5">
+            <div className="bg-amber-100 p-4 rounded-2xl">
+               <AlertCircle className="w-8 h-8 text-amber-600 shrink-0" />
+            </div>
+            <p className="text-amber-900 font-bold text-sm leading-snug">
+               <span className="font-black uppercase text-[10px] tracking-widest block mb-1">Atenção Detetive</span>
+               Selecione sua turma acima para acumular pontos no ranking oficial!
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -423,7 +584,6 @@ export default function Games({ classes, addGamePoints, profile, isAdmin }: Game
         <AnimatePresence mode="wait">
           {activeGame === 'ecology' && <EcologyGame onComplete={(score) => saveScore('ecology', score)} onExit={() => setActiveGame(null)} />}
           {activeGame === 'sorting' && <SortingGame onComplete={(score) => saveScore('sorting', score)} onExit={() => setActiveGame(null)} />}
-          {activeGame === 'detective' && <DetectiveGame onComplete={(score) => saveScore('detective', score)} onExit={() => setActiveGame(null)} />}
           {activeGame === 'silence' && <SilenceMissionGame onComplete={(score) => saveScore('silence', score)} onExit={() => setActiveGame(null)} />}
         </AnimatePresence>
       </div>
@@ -611,6 +771,16 @@ function SortingGame({ onComplete, onExit }: { onComplete: (s: number) => void, 
   ];
 
   useEffect(() => {
+    const handleRemoteAction = (e: any) => {
+      if (gameState !== 'playing') return;
+      handleSort(e.detail);
+    };
+
+    window.addEventListener('eco-game-remote-action', handleRemoteAction);
+    return () => window.removeEventListener('eco-game-remote-action', handleRemoteAction);
+  }, [gameState, currentItemIdx]);
+
+  useEffect(() => {
     if (gameState === 'playing' && timeLeft > 0) {
       const timer = setInterval(() => setTimeLeft(t => t - 1), 1000);
       return () => clearInterval(timer);
@@ -625,6 +795,8 @@ function SortingGame({ onComplete, onExit }: { onComplete: (s: number) => void, 
   };
 
   const handleSort = (binType: string) => {
+    if (!bins.some(b => b.type === binType)) return;
+    
     if (binType === items[currentItemIdx].type) {
       setScore(s => s + 1);
       setFeedback('ok');
@@ -701,340 +873,6 @@ function SortingGame({ onComplete, onExit }: { onComplete: (s: number) => void, 
           </motion.button>
         ))}
       </div>
-    </div>
-  );
-}
-
-// --- GAME 4: DETETIVES "DETETIVES DO LIXO" ---
-function DetectiveGame({ onComplete, onExit }: { onComplete: (s: number) => void, onExit: () => void }) {
-  const [round, setRound] = useState(0);
-  const [totalScore, setTotalScore] = useState(0);
-  const [gameState, setGameState] = useState<'intro' | 'investigating' | 'solution' | 'feedback' | 'finished'>('intro');
-  const [foundErrors, setFoundErrors] = useState<number[]>([]);
-  const [lastErrorMsg, setLastErrorMsg] = useState<string | null>(null);
-  const [solutionResult, setSolutionResult] = useState<{ correct: boolean, msg: string } | null>(null);
-
-  const scenes = [
-    {
-      title: "O Parque da Cidade",
-      image: "https://images.unsplash.com/photo-1519331379826-f10be5486c6f?q=80&w=1200",
-      errors: [
-        { id: 0, label: "Garrafa Plástica", x: 25, y: 75, msg: "A garrafa no chão demora centenas de anos para sumir!", icon: "🧴" },
-        { id: 1, label: "Lixo Misturado", x: 75, y: 65, msg: "Papel e restos de comida juntos dificultam a reciclagem.", icon: "🍱" },
-        { id: 2, label: "Comida no Banco", x: 55, y: 45, msg: "Restos de comida atraem insetos e animais que podem ficar doentes.", icon: "🍕" }
-      ],
-      solutions: [
-        { text: "Instalar lixeiras coloridas e placas educativas", correct: true, feedback: "Exatamente! Placas ajudam as pessoas a aprender onde jogar cada coisa." },
-        { text: "Proibir as pessoas de entrarem no parque", correct: false, feedback: "Poxa, o parque é para todos! Precisamos educar, não proibir." }
-      ]
-    },
-    {
-      title: "Cozinha da Escola",
-      image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=1200",
-      errors: [
-        { id: 3, label: "Torneira Pingando", x: 70, y: 35, msg: "Uma torneira pingando desperdiça muita água pura!", icon: "💧" },
-        { id: 4, label: "Lixeira Única", x: 20, y: 80, msg: "Sem separação de lixo, perdemos a chance de reciclar.", icon: "🗑️" },
-        { id: 5, label: "Prato com Sobras", x: 50, y: 60, msg: "Sobrou muita comida! Precisamos cozinhar apenas o necessário.", icon: "🍽️" }
-      ],
-      solutions: [
-        { text: "Trocar a torneira e usar lixeiras separadas", correct: true, feedback: "Muito bem! Economizamos água e reciclamos o material!" },
-        { text: "Comprar mais pratos e torneiras novas", correct: false, feedback: "Isso não resolve o desperdício, apenas gasta mais dinheiro." }
-      ]
-    },
-    {
-      title: "Nossa Sala de Aula",
-      image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=1200",
-      errors: [
-        { id: 6, label: "Luz Acesa", x: 80, y: 20, msg: "Sala vazia não precisa de luz acesa!", icon: "💡" },
-        { id: 7, label: "Papel Amassado", x: 35, y: 75, msg: "Este papel poderia ser rascunho ou ir para reciclagem.", icon: "📄" },
-        { id: 8, label: "Ar Condicionado", x: 15, y: 25, msg: "Janelas abertas com o ar ligado gastam muita energia.", icon: "❄️" }
-      ],
-      solutions: [
-        { text: "Criar o 'Ajudante da Ecologia' para cuidar da sala", correct: true, feedback: "Incrível! A participação dos alunos é a melhor solução!" },
-        { text: "Pedir para o zelador apagar tudo sempre", correct: false, feedback: "Nós também somos responsáveis pela nossa sala." }
-      ]
-    },
-    {
-      title: "Rua do Bairro",
-      image: "https://images.unsplash.com/photo-1516515429572-1b606fa7019c?q=80&w=1200",
-      errors: [
-        { id: 9, label: "Bueiro com Lixo", x: 55, y: 80, msg: "Lixo no bueiro causa enchentes quando chove!", icon: "🕳️" },
-        { id: 10, label: "Sacolas Plásticas", x: 25, y: 45, msg: "Sacolas voando poluem a natureza e bueiros.", icon: "🛍️" },
-        { id: 11, label: "Lavando Calçada", x: 75, y: 75, msg: "Usar mangueira para varrer a calçada gasta muita água.", icon: "🚿" }
-      ],
-      solutions: [
-        { text: "Fazer mutirão de limpeza e usar vassouras", correct: true, feedback: "Sim! Trabalhar juntos e usar vassoura economiza água!" },
-        { text: "Esperar a prefeitura limpar e a chuva parar", correct: false, feedback: "Nossos atos diários evitam que a sujeira se acumule!" }
-      ]
-    },
-    {
-      title: "Pátio do Recreio",
-      image: "https://images.unsplash.com/photo-1473081556163-2a17de81fc97?q=80&w=1200",
-      errors: [
-        { id: 12, label: "Copos Descartáveis", x: 35, y: 60, msg: "Muitos copos iguais! Poderíamos usar garrafas de casa.", icon: "🥤" },
-        { id: 13, label: "Resto de Lanche", x: 65, y: 70, msg: "Lixo orgânico largado pelo pátio.", icon: "🍪" },
-        { id: 14, label: "Chão Sujo", x: 40, y: 30, msg: "O pátio fica feio e sujo sem a nossa ajuda.", icon: "🍂" }
-      ],
-      solutions: [
-        { text: "Campanha: Cada um traz sua garrafinha!", correct: true, feedback: "Isso mesmo! Reutilizar é melhor que descartar." },
-        { text: "Comprar copos maiores para todos", correct: false, feedback: "Copos maiores ainda são lixo. O segredo é reutilizar!" }
-      ]
-    }
-  ];
-
-  useEffect(() => {
-    const handleRemoteAction = (e: any) => {
-      const action = e.detail;
-      if (gameState === 'solution') {
-        if (action === 'A') handleSolutionSelect(current.solutions[0]);
-        if (action === 'B') handleSolutionSelect(current.solutions[1]);
-      } else if (gameState === 'feedback') {
-        if (action === 'NEXT') nextRound();
-      }
-    };
-
-    window.addEventListener('eco-game-remote-action', handleRemoteAction);
-    return () => window.removeEventListener('eco-game-remote-action', handleRemoteAction);
-  }, [gameState, round]);
-
-  const handleLevelClick = (errorId: number) => {
-    if (gameState !== 'investigating') return;
-    if (foundErrors.includes(errorId)) return;
-
-    const error = current.errors.find(e => e.id === errorId);
-    if (error) {
-      setFoundErrors([...foundErrors, errorId]);
-      setTotalScore(s => s + 1);
-      setLastErrorMsg(error.msg);
-      
-      if (foundErrors.length + 1 === 3) {
-        setTimeout(() => {
-          setGameState('solution');
-          setLastErrorMsg(null);
-        }, 3000);
-      } else {
-        setTimeout(() => setLastErrorMsg(null), 1500);
-      }
-    }
-  };
-
-  const handleSolutionSelect = (solution: { text: string, correct: boolean, feedback: string }) => {
-    if (solution.correct) setTotalScore(s => s + 2);
-    setSolutionResult({ correct: solution.correct, msg: solution.feedback });
-    setGameState('feedback');
-  };
-
-  const nextRound = () => {
-    if (round + 1 < scenes.length) {
-      setRound(round + 1);
-      setFoundErrors([]);
-      setSolutionResult(null);
-      setGameState('investigating');
-    } else {
-      setGameState('finished');
-      onComplete(totalScore);
-    }
-  };
-
-  if (gameState === 'intro') return (
-    <div className="text-center space-y-8 py-12">
-      <div className="bg-purple-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-        <Search className="w-12 h-12 text-purple-600" />
-      </div>
-      <h2 className="text-4xl font-black text-purple-600 uppercase tracking-tighter">Detetives do Lixo</h2>
-      <p className="text-xl text-stone-600 font-bold max-w-md mx-auto">Observe a cena e encontre 3 problemas ambientais escondidos. Depois, escolha a melhor solução!</p>
-      <Button onClick={() => setGameState('investigating')} className="px-12 py-6 rounded-full bg-purple-500 text-xl font-black">COMEÇAR INVESTIGAÇÃO</Button>
-    </div>
-  );
-
-  const current = scenes[round];
-
-  if (gameState === 'finished') {
-    const finalMsg = totalScore >= scenes.length * 4 ? "Vocês são ótimos investigadores ambientais!" : "Vamos observar melhor o lixo no nosso dia a dia!";
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-8 py-12">
-        <Trophy className="w-24 h-24 mx-auto text-purple-500" />
-        <div>
-          <h2 className="text-5xl font-black text-purple-600 uppercase tracking-tighter mb-4">Caso Encerrado!</h2>
-          <p className="text-2xl font-bold text-stone-700">{finalMsg}</p>
-        </div>
-        <div className="bg-stone-50 p-10 rounded-[3rem] border-2 border-purple-100 inline-block">
-          <p className="text-stone-400 font-black uppercase text-xs tracking-widest mb-2">Pontuação Detetive</p>
-          <p className="text-8xl font-black text-stone-900">{totalScore}<span className="text-2xl text-stone-300">/{scenes.length * 5}</span></p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-          <Button onClick={() => {setRound(0); setTotalScore(0); setFoundErrors([]); setGameState('investigating'); setSolutionResult(null);}} className="px-12 py-6 rounded-full bg-purple-500 text-lg font-black uppercase">NOVA INVESTIGAÇÃO</Button>
-          <Button onClick={onExit} variant="outline" className="px-12 py-6 rounded-full text-lg font-black uppercase">SAIR</Button>
-        </div>
-      </motion.div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center bg-stone-50 p-4 rounded-3xl border border-stone-100">
-        <div className="flex items-center gap-2 font-black text-purple-600"><MapPin className="w-5 h-5" /> {current.title}</div>
-        <Badge className="bg-purple-100 text-purple-700 border-purple-200">Cena {round + 1}/{scenes.length}</Badge>
-        <div className="font-black text-stone-700 uppercase text-xs tracking-widest">Pontos: {totalScore}</div>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {gameState === 'investigating' && (
-          <motion.div 
-            key="investigating"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            className="relative aspect-[16/9] bg-stone-100 rounded-[3rem] border-4 border-stone-200 overflow-hidden shadow-xl group cursor-crosshair"
-          >
-            <div className="absolute inset-0 z-0">
-              <img src={current.image} alt={current.title} className="w-full h-full object-cover brightness-75 transition-all group-hover:brightness-90" />
-              <div className="absolute inset-0 bg-purple-900/10 mix-blend-overlay" />
-            </div>
-            
-            <div className="absolute top-4 left-4 right-4 bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-purple-100 flex items-center justify-between z-30 shadow-lg">
-              <div className="flex items-center gap-3">
-                <Search className="w-5 h-5 text-purple-600" />
-                <p className="font-bold text-stone-700 text-sm md:text-base">Encontre {3 - foundErrors.length} problemas clicando neles!</p>
-              </div>
-              <div className="flex gap-1">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className={cn("w-3 h-3 rounded-full", i < foundErrors.length ? "bg-purple-600" : "bg-stone-200")} />
-                ))}
-              </div>
-            </div>
-
-            <AnimatePresence>
-              {lastErrorMsg && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-                  className="absolute bottom-6 left-6 right-6 bg-white p-6 rounded-2xl shadow-2xl z-40 border-2 border-purple-500 flex items-start gap-4"
-                >
-                  <div className="bg-purple-100 p-2 rounded-full"><AlertCircle className="text-purple-600 w-6 h-6" /></div>
-                  <div>
-                    <p className="text-purple-900 font-black uppercase text-xs tracking-widest mb-1">Problema Encontrado!</p>
-                    <p className="text-stone-700 font-bold">{lastErrorMsg}</p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {current.errors.map(err => {
-              const isFound = foundErrors.includes(err.id);
-              return (
-                <button
-                  key={err.id}
-                  onClick={() => handleLevelClick(err.id)}
-                  className={cn(
-                    "absolute w-20 h-20 -ml-10 -mt-10 rounded-full flex items-center justify-center transition-all transform hover:scale-125 z-20",
-                    isFound ? "pointer-events-none" : "cursor-pointer group/item"
-                  )}
-                  style={{ left: `${err.x}%`, top: `${err.y}%` }}
-                >
-                  <AnimatePresence mode="wait">
-                    {isFound ? (
-                      <motion.div 
-                        initial={{ scale: 0, rotate: -20 }} 
-                        animate={{ scale: 1, rotate: 0 }}
-                        className="bg-emerald-500 p-2 rounded-full shadow-lg border-2 border-white"
-                      >
-                        <CheckCircle2 className="w-8 h-8 text-white" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        whileHover={{ scale: 1.2 }}
-                        className="text-4xl filter drop-shadow-lg transition-all duration-300 opacity-90 hover:opacity-100"
-                      >
-                        {err.icon}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </button>
-              );
-            })}
-          </motion.div>
-        )}
-
-        {gameState === 'solution' && (
-          <motion.div
-            key="solution"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <Card className="p-8 md:p-12 text-center space-y-8">
-              <div className="text-center">
-                <div className="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="w-10 h-10 text-emerald-600" />
-                </div>
-                <h3 className="text-3xl font-black text-stone-900 uppercase tracking-tighter mb-2">Problemas Encontrados!</h3>
-                <p className="text-stone-600 font-bold max-w-md mx-auto">Excelente trabalho de observação! Agora, o que podemos fazer para resolver essa situação?</p>
-              </div>
-              
-              <div className="grid grid-cols-1 gap-4 pt-4">
-                {current.solutions.map((sol, i) => (
-                  <Button 
-                    key={i} 
-                    onClick={() => handleSolutionSelect(sol)}
-                    variant="outline" 
-                    className="py-10 rounded-3xl text-xl font-bold border-2 hover:bg-purple-50 hover:border-purple-300 flex flex-col gap-1 h-auto px-6 whitespace-normal text-left"
-                  >
-                    {sol.text}
-                  </Button>
-                ))}
-              </div>
-            </Card>
-          </motion.div>
-        )}
-
-        {gameState === 'feedback' && (
-          <motion.div
-            key="feedback"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <Card className="p-8 md:p-12 text-center space-y-8 h-full bg-stone-50/50">
-              <div className="space-y-6">
-                <div className={cn(
-                  "p-8 rounded-[3rem] border-4 mb-8",
-                  solutionResult?.correct ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"
-                )}>
-                  <div className="flex items-center justify-center gap-4 mb-4">
-                    {solutionResult?.correct ? <CheckCircle2 className="w-10 h-10 text-emerald-600" /> : <XCircle className="w-10 h-10 text-red-600" />}
-                    <h3 className={cn("text-3xl font-black uppercase tracking-tighter", solutionResult?.correct ? "text-emerald-700" : "text-red-700")}>
-                      {solutionResult?.correct ? "Ótima Decisão!" : "Não foi dessa vez!"}
-                    </h3>
-                  </div>
-                  <p className="text-lg font-bold text-stone-700">{solutionResult?.msg}</p>
-                </div>
-
-                <h3 className="text-2xl font-black text-purple-600 uppercase tracking-tighter">Relatório da Investigação</h3>
-                <div className="bg-white p-6 rounded-3xl text-left space-y-4 border-2 border-stone-100 shadow-sm">
-                  <p className="font-black text-[10px] text-stone-400 uppercase tracking-widest border-b border-stone-200 pb-2">Evidências Coletadas:</p>
-                  <ul className="space-y-4">
-                    {current.errors.map(e => (
-                      <li key={e.id} className="flex gap-4 items-start text-stone-700">
-                        <div className="bg-purple-100 p-2 rounded-xl shrink-0"><Info className="w-5 h-5 text-purple-600" /></div>
-                        <div className="text-sm">
-                          <p className="font-black uppercase tracking-tight text-purple-900">{e.label}</p>
-                          <p className="font-medium text-stone-500">{e.msg}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              <Button onClick={nextRound} className="w-full py-8 rounded-[2rem] bg-purple-600 hover:bg-purple-700 text-xl font-black uppercase tracking-widest shadow-xl shadow-purple-200">
-                {round + 1 < scenes.length ? "PRÓXIMA INVESTIGAÇÃO" : "VER RESULTADO FINAL"}
-              </Button>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <button onClick={() => {setRound(0); setTotalScore(0); setFoundErrors([]); setGameState('intro'); setSolutionResult(null);}} className="flex items-center gap-2 mx-auto text-stone-400 hover:text-stone-600 uppercase font-black text-[10px] tracking-widest">
-        <RotateCcw className="w-3 h-3" /> Reiniciar Investigação
-      </button>
     </div>
   );
 }

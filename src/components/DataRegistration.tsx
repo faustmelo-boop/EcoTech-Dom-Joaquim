@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Button, Badge } from './UI';
-import { PlusCircle, Calendar, Recycle, Scale, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Calendar, Recycle, Scale, CheckCircle2, Users, ChevronRight, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResidueType } from '../types';
 import { cn } from '../lib/utils';
-import { useEffect } from 'react';
 
 export default function DataRegistration({ classes, addEntry, profile, isAdmin }: any) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -40,84 +39,111 @@ export default function DataRegistration({ classes, addEntry, profile, isAdmin }
   ];
 
   return (
-    <div className="space-y-12 pb-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-3xl sm:text-4xl font-black text-emerald-950 tracking-tighter uppercase underline decoration-lime-400 decoration-8 underline-offset-8 transition-all">Registrar Coleta</h2>
-          <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mt-4">Transformando resíduos em pontos e aprendizado</p>
+    <div className="space-y-10 pb-20 no-scrollbar">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 w-fit rounded-full">
+            <PlusCircle className="w-3 h-3 text-emerald-600" />
+            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Registros</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-stone-900 tracking-tighter uppercase leading-[0.9]">
+            NOVA COLETA
+          </h2>
+          <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] max-w-xs leading-relaxed">
+            Transformando resíduos em impacto real para a escola.
+          </p>
         </div>
-        <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
-           <Badge variant="success">+5 PONTOS POR REGISTRO</Badge>
+        
+        <div className="bg-white px-6 py-4 rounded-[2.5rem] border-2 border-stone-50 shadow-xl shadow-stone-200/50 flex items-center justify-between gap-6">
+          <div className="text-left">
+            <p className="text-emerald-700 text-[10px] font-black uppercase tracking-widest leading-none mb-1">+5 PONTOS</p>
+            <span className="text-2xl font-black text-stone-900 tracking-tight leading-none">Bônus Agente</span>
+          </div>
+          <div className="bg-emerald-100 p-3 rounded-2xl">
+            <CheckCircle2 className="w-6 h-6 text-emerald-600 fill-emerald-600/20" />
+          </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto">
-        <Card className="p-8 md:p-12 shadow-2xl shadow-emerald-900/5">
-          <form onSubmit={handleSubmit} className="space-y-10">
+      <div className="max-w-4xl mx-auto w-full">
+        <div className="bg-white p-8 md:p-12 rounded-[3.5rem] shadow-2xl shadow-stone-200/30 border border-stone-50 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16 opacity-50" />
+          
+          <form onSubmit={handleSubmit} className="space-y-12 relative z-10">
             {/* Success Message */}
             <AnimatePresence>
                {showSuccess && (
                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="bg-emerald-500 text-white p-6 rounded-3xl flex items-center gap-4 mb-8"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="bg-emerald-600 text-white p-6 rounded-[2rem] flex items-center gap-4 mb-8 shadow-xl shadow-emerald-200"
                   >
-                    <CheckCircle2 className="w-8 h-8 shrink-0" />
+                    <div className="bg-white/20 p-2 rounded-xl">
+                       <CheckCircle2 className="w-6 h-6 shrink-0" />
+                    </div>
                     <div>
-                       <p className="font-black text-lg">Sucesso! +5 Pontos Computados!</p>
-                       <p className="text-emerald-50 text-sm font-medium">Os dados foram registrados no ranking geral.</p>
+                       <p className="font-black text-lg leading-none">Registro Concluído!</p>
+                       <p className="text-emerald-100 text-[10px] font-black uppercase tracking-widest mt-1">Pontuação enviada para o ranking</p>
                     </div>
                  </motion.div>
                )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Date */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-xs font-black uppercase text-stone-400 tracking-widest">
-                  <Calendar className="w-3.5 h-3.5" /> Data da Coleta
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              {/* Date Selection */}
+              <div className="space-y-4">
+                <label className="flex items-center gap-2 text-[10px] font-black uppercase text-stone-400 tracking-widest ml-4">
+                  <Calendar className="w-4 h-4 text-emerald-500" /> Data da Coleta
                 </label>
-                <input 
-                  type="date" 
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-stone-50 border-2 border-stone-100 rounded-[2rem] px-6 py-5 font-bold text-stone-900 focus:outline-none focus:border-emerald-500 transition-all text-lg cursor-pointer"
-                />
+                <div className="relative group">
+                  <input 
+                    type="date" 
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full bg-stone-50 border-2 border-stone-50 group-hover:border-stone-100 focus:border-emerald-500 px-8 py-5 rounded-[2.5rem] font-black text-stone-900 transition-all text-xl cursor-pointer outline-none shadow-inner"
+                  />
+                </div>
               </div>
 
-              {/* Class Selection */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-xs font-black uppercase text-stone-400 tracking-widest">
-                  <Recycle className="w-3.5 h-3.5" /> Turma Ativa
+              {/* Class Info Card - Enhanced Selection */}
+              <div className="space-y-4">
+                <label className="flex items-center gap-2 text-[10px] font-black uppercase text-stone-400 tracking-widest ml-4">
+                  <Users className="w-4 h-4 text-purple-500" /> Equipe Responsável
                 </label>
                 {profile?.role === 'teacher' ? (
-                  <div className="w-full bg-emerald-50 border-2 border-emerald-100 rounded-[2rem] px-6 py-5 flex flex-col justify-center">
-                    <p className="font-black text-emerald-700 text-lg">
-                      {classes.find((c: any) => c.id === classId)?.name || 'Sem turma'}
+                  <div className="w-full bg-stone-50 border-2 border-stone-50 px-8 py-5 rounded-[2.5rem] flex flex-col justify-center shadow-inner">
+                    <p className="font-black text-stone-900 text-xl leading-none">
+                      {classes.find((c: any) => c.id === classId)?.name || 'Sem turma vinculada'}
                     </p>
-                    <p className="text-[10px] font-black text-emerald-600/50 uppercase tracking-widest leading-none">Equipe: {classes.find((c: any) => c.id === classId)?.teamName || '-'}</p>
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mt-1.5 leading-none">Prof. {profile?.name}</p>
                   </div>
                 ) : (
-                  <select 
-                    value={classId}
-                    onChange={(e) => setClassId(e.target.value)}
-                    disabled={!!profile && !isAdmin}
-                    className="w-full bg-stone-50 border-2 border-stone-100 rounded-[2rem] px-6 py-5 font-bold text-stone-900 focus:outline-none focus:border-emerald-500 transition-all text-lg cursor-pointer appearance-none disabled:opacity-75 disabled:cursor-not-allowed"
-                    required
-                  >
-                    <option value="">Selecione uma turma...</option>
-                    {[...classes].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((c: any) => (
-                      <option key={c.id} value={c.id}>{c.name} - {c.teamName}</option>
-                    ))}
-                  </select>
+                  <div className="relative group">
+                    <select 
+                      value={classId}
+                      onChange={(e) => setClassId(e.target.value)}
+                      disabled={!!profile && !isAdmin}
+                      className="w-full bg-stone-50 border-2 border-stone-50 group-hover:border-stone-100 focus:border-emerald-500 px-8 py-5 rounded-[2.5rem] font-black text-stone-900 transition-all text-xl cursor-pointer outline-none appearance-none shadow-inner disabled:opacity-50"
+                      required
+                    >
+                      <option value="">Selecione a turma...</option>
+                      {[...classes].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <ChevronRight className="absolute right-8 top-1/2 -translate-y-1/2 w-6 h-6 text-stone-300 pointer-events-none group-hover:translate-x-1 transition-transform" />
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Residue Type Selector */}
-            <div className="space-y-4">
-              <label className="text-xs font-black uppercase text-stone-400 tracking-widest">Tipo de Resíduo</label>
+            {/* Residue Type Grid */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between ml-4">
+                <label className="text-[10px] font-black uppercase text-stone-400 tracking-[0.2em]">Material Coletado</label>
+                <div className="h-[1px] flex-1 bg-stone-100 ml-6" />
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {residueTypes.map((item) => (
                   <button
@@ -125,50 +151,57 @@ export default function DataRegistration({ classes, addEntry, profile, isAdmin }
                     type="button"
                     onClick={() => setType(item.type)}
                     className={cn(
-                      "flex flex-col items-center gap-3 p-6 rounded-[2rem] border-2 transition-all group",
+                      "flex flex-col items-center gap-4 p-6 rounded-[2.5rem] border-2 transition-all group overflow-hidden relative",
                       type === item.type 
-                        ? cn(item.color, "shadow-lg scale-105") 
-                        : "bg-white border-stone-100 opacity-60 grayscale hover:grayscale-0 hover:opacity-100 hover:border-stone-200"
+                        ? "bg-stone-900 border-stone-900 text-white shadow-2xl scale-[1.02]" 
+                        : "bg-white border-stone-100 text-stone-400 hover:border-emerald-200 hover:text-emerald-600"
                     )}
                   >
-                    <span className="text-4xl">{item.icon}</span>
-                    <span className="font-black text-xs uppercase tracking-wider">{item.type}</span>
+                    {type === item.type && (
+                      <motion.div 
+                        layoutId="activeResidue"
+                        className="absolute inset-0 bg-stone-900 -z-10"
+                      />
+                    )}
+                    <span className="text-5xl group-hover:scale-110 transition-transform">{item.icon}</span>
+                    <span className="font-black text-[10px] uppercase tracking-[0.2em]">{item.type}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Quantity */}
-            <div className="space-y-4 pt-4">
-              <label className="flex items-center gap-2 text-xs font-black uppercase text-stone-400 tracking-widest">
-                <Scale className="w-3.5 h-3.5" /> Quantidade (em quilos)
+            {/* Quantity Input - Brutalist Layout */}
+            <div className="space-y-6">
+              <label className="flex items-center gap-2 text-[10px] font-black uppercase text-stone-400 tracking-[0.2em] ml-4">
+                <Scale className="w-4 h-4 text-blue-500" /> Massa Total
               </label>
-              <div className="relative">
+              <div className="relative group">
                 <input 
                   type="number" 
                   step="0.1"
                   min="0.1"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
-                  placeholder="Ex: 5.5"
-                  className="w-full bg-stone-50 border-2 border-stone-100 rounded-[2.5rem] px-8 py-8 font-black text-stone-900 focus:outline-none focus:border-emerald-500 transition-all text-4xl placeholder:text-stone-200"
+                  placeholder="0.0"
+                  className="w-full bg-stone-50 border-2 border-stone-50 group-hover:border-stone-100 focus:border-emerald-500 rounded-[3rem] px-10 py-12 font-black text-stone-900 transition-all text-6xl md:text-8xl placeholder:text-stone-100 outline-none shadow-inner"
                   required
                 />
-                <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-stone-200 text-stone-600 px-4 py-2 rounded-2xl font-black text-sm uppercase tracking-widest">
-                  KG
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 flex flex-col items-end">
+                   <div className="bg-emerald-600 text-white px-6 py-2 rounded-2xl font-black text-xl tracking-tighter shadow-lg mb-2">KG</div>
+                   <p className="text-[10px] font-black text-stone-300 uppercase tracking-widest hidden md:block">Quilogramas</p>
                 </div>
               </div>
             </div>
 
-            <Button 
+            <button 
               type="submit" 
-              className="w-full h-24 text-2xl shadow-2xl shadow-emerald-500/40 rounded-[2.5rem] mt-8"
               disabled={!classId || !quantity}
+              className="w-full h-24 bg-emerald-600 hover:bg-emerald-700 text-white text-2xl font-black uppercase tracking-[0.1em] rounded-[3rem] shadow-2xl shadow-emerald-200 active:scale-[0.98] transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:grayscale disabled:scale-100"
             >
-              Registrar Agora
-            </Button>
+              Confirmar Registro <ArrowRight className="w-8 h-8" />
+            </button>
           </form>
-        </Card>
+        </div>
       </div>
     </div>
   );

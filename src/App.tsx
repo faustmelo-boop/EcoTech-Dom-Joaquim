@@ -119,6 +119,10 @@ function AppContent() {
 
   const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
+  const mainNavItems = filteredNavItems.filter(item => 
+    ['dashboard', 'data', 'missions', 'games', 'logs'].includes(item.id)
+  ).slice(0, 5);
+
   if (authLoading || ecoState.loading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-sky-50">
@@ -134,7 +138,7 @@ function AppContent() {
 
   // PUBLIC VIEW (Children/Dashboard)
   const params = new URLSearchParams(window.location.search);
-  const isRemote = params.get('remote') && (params.get('tab') === 'play' || params.get('tab') === 'games');
+  const isRemote = params.get('remote') && params.get('tab') === 'games';
 
   if (!showTeacherArea && !user && !isRemote) {
     return (
@@ -315,22 +319,35 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCF8] flex flex-col md:flex-row font-sans text-stone-900">
-      {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-emerald-700 text-white shadow-md">
-        <div className="flex items-center gap-2">
-          <Leaf className="w-6 h-6 fill-lime-400 text-lime-400" />
-          <span className="font-bold text-base sm:text-lg tracking-tight">EcoTech Dom Joaquim</span>
+    <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row font-sans text-stone-900 overflow-hidden">
+      {/* Mobile Top Bar */}
+      <div className="md:hidden flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-xl border-b border-stone-100 z-[100] sticky top-0">
+        <div className="flex items-center gap-3">
+          <div className="bg-emerald-600 p-2 rounded-xl shadow-lg ring-4 ring-emerald-50">
+            <Leaf className="w-5 h-5 text-white fill-white" />
+          </div>
+          <div>
+            <h1 className="font-black text-sm tracking-tight text-stone-900 leading-none">ECOTECH</h1>
+            <p className="text-[8px] font-black uppercase tracking-widest text-emerald-600 mt-0.5 leading-none">DOM JOAQUIM</p>
+          </div>
         </div>
-        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-          {isSidebarOpen ? <X /> : <Menu />}
-        </button>
+        
+        <div className="flex items-center gap-2">
+          {user && (
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2.5 bg-stone-100 rounded-xl text-stone-600 active:scale-90 transition-transform"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Sidebar */}
+      {/* Sidebar (Drawer on mobile) */}
       <aside 
         className={cn(
-          "fixed inset-y-0 left-0 z-50 bg-emerald-800 text-white transform transition-all duration-300 md:relative md:translate-x-0 outline-none",
+          "fixed inset-y-0 left-0 z-[200] bg-emerald-800 text-white transform transition-all duration-300 md:relative md:translate-x-0 outline-none",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full",
           isSidebarCollapsed ? "w-20" : "w-72"
         )}
@@ -442,8 +459,8 @@ function AppContent() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto h-screen scroll-smooth">
-        <div className="max-w-6xl mx-auto">
+      <main className="flex-1 overflow-y-auto h-screen scroll-smooth pb-32 md:pb-8 md:p-8 lg:p-12 no-scrollbar">
+        <div className="max-w-6xl mx-auto p-4 md:p-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentView}
@@ -457,6 +474,41 @@ function AppContent() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Mobile Floating Bottom Nav */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 p-6 pointer-events-none z-[100]">
+        <div className="max-w-xs mx-auto flex items-center justify-between bg-white/90 backdrop-blur-2xl rounded-[2.5rem] p-2 border border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] pointer-events-auto">
+          {mainNavItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setCurrentView(item.id as View)}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center p-3 rounded-[2rem] transition-all relative overflow-hidden",
+                currentView === item.id 
+                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" 
+                  : "text-stone-400"
+              )}
+            >
+              {currentView === item.id && (
+                <motion.div 
+                  layoutId="activeNav"
+                  className="absolute inset-0 bg-emerald-600 -z-10"
+                />
+              )}
+              <item.icon className={cn(
+                "w-5 h-5",
+                currentView === item.id ? "scale-110" : ""
+              )} />
+              <span className={cn(
+                "text-[8px] font-black uppercase tracking-wider mt-1 leading-none",
+                currentView === item.id ? "opacity-100" : "opacity-0 h-0"
+              )}>
+                {item.label.split(' ')[0]}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -35,51 +35,62 @@ export default function Dashboard({ classes, entries, missions, logs, onNavigate
   const totalPoints = classes.reduce((acc: number, curr: any) => acc + curr.points, 0);
 
   return (
-    <div className="space-y-12 pb-12">
+    <div className="space-y-8 pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-emerald-950 tracking-tighter uppercase underline decoration-lime-400 decoration-8 underline-offset-8 transition-all">
-            Olá, Prof. {profile?.name?.split(' ')[0]}!
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-stone-900 tracking-tighter uppercase leading-[1.1] transition-all">
+            Olá, <span className="text-emerald-600">Prof. {profile?.name?.split(' ')[0]}</span>
           </h2>
           {profile?.role === 'teacher' && (
-            <p className="text-emerald-600 font-black uppercase text-xs tracking-widest mt-2 flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Turma: {classes.find((c: any) => c.teacherId === profile.id)?.name || 'Nenhuma turma vinculada'}
-            </p>
+            <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-stone-100 rounded-full w-fit">
+              <Users className="w-3 h-3 text-stone-400" />
+              <p className="text-stone-500 font-bold uppercase text-[9px] tracking-widest whitespace-nowrap">
+                Turma: {classes.find((c: any) => c.teacherId === profile.id)?.name || 'Nenhuma'}
+              </p>
+            </div>
           )}
-          <p className="text-stone-500 font-bold uppercase tracking-widest text-[10px] mt-6 leading-relaxed max-w-2xl">
-            "Educação não transforma o mundo. Educação muda as pessoas. Pessoas transformam o mundo."
-          </p>
         </div>
-        <div className="bg-emerald-100 px-6 py-4 rounded-[2rem] border-b-4 border-emerald-200">
-          <p className="text-emerald-800 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Impacto Total</p>
-          <div className="flex items-center gap-3">
-            <span className="text-3xl font-black text-emerald-900 tracking-tighter">{totalPoints} pts</span>
+        <div className="bg-white px-6 py-4 rounded-[2.5rem] border-2 border-stone-100 shadow-xl shadow-stone-200/50 flex items-center justify-between gap-6">
+          <div>
+            <p className="text-stone-400 text-[9px] font-black uppercase tracking-widest leading-none mb-1">Impacto Total</p>
+            <span className="text-3xl font-black text-stone-900 tracking-tighter leading-none">{totalPoints} pts</span>
+          </div>
+          <div className="bg-emerald-100 p-3 rounded-2xl">
             <Leaf className="w-6 h-6 text-emerald-600 fill-emerald-600" />
           </div>
         </div>
       </div>
 
-      {/* Quick Access Shortcuts */}
-      <div className="flex md:grid md:grid-cols-4 gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2 md:pb-0">
+      {/* Quick Access Shortcuts - Bento Style */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { id: 'data', label: 'Registrar', icon: PlusCircle, color: 'bg-lime-400' },
-          { id: 'games', label: 'Games', icon: Gamepad2, color: 'bg-emerald-400' },
-          { id: 'logs', label: 'Diário', icon: Camera, color: 'bg-sky-400' },
-          { id: 'help', label: 'Ajuda', icon: HelpCircle, color: 'bg-indigo-400' }
+          { id: 'data', label: 'Registrar Peso', icon: PlusCircle, color: 'bg-emerald-500', text: 'text-white' },
+          { id: 'games', label: 'Jogar Games', icon: Gamepad2, color: 'bg-white', text: 'text-stone-900' },
+          { id: 'logs', label: 'Ver Diário', icon: Camera, color: 'bg-white', text: 'text-stone-900' },
+          { id: 'help', label: 'Ajuda / FAQ', icon: HelpCircle, color: 'bg-white', text: 'text-stone-900' }
         ].map((shortcut) => (
           <motion.button
             key={shortcut.id}
-            whileHover={{ scale: 1.05, y: -5 }}
+            whileHover={{ y: -5 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onNavigate(shortcut.id)}
-            className="bg-white p-3 md:p-6 rounded-full md:rounded-[2rem] border-2 border-stone-100 shadow-sm hover:shadow-xl hover:border-emerald-200 transition-all flex flex-col items-center gap-2 md:gap-3 text-center group shrink-0"
+            className={cn(
+              "p-5 rounded-[2rem] border transition-all flex flex-col items-start gap-4 text-left shadow-lg overflow-hidden relative group",
+              shortcut.color,
+              shortcut.color === 'bg-white' ? "border-stone-100 shadow-stone-200/40" : "border-emerald-400 shadow-emerald-200/50"
+            )}
           >
-            <div className={cn("p-3 md:p-4 rounded-full md:rounded-2xl text-emerald-900 shadow-sm md:shadow-lg group-hover:rotate-12 transition-transform", shortcut.color)}>
-              <shortcut.icon className="w-5 h-5 md:w-6 md:h-6" />
+            <div className={cn(
+              "p-2.5 rounded-xl transition-transform group-hover:scale-110",
+              shortcut.color === 'bg-white' ? "bg-stone-50 text-stone-900" : "bg-white/20 text-white"
+            )}>
+              <shortcut.icon className="w-5 h-5" />
             </div>
-            <span className="font-black text-[8px] md:text-[10px] uppercase tracking-widest text-stone-600 group-hover:text-emerald-700 transition-colors whitespace-nowrap">
+            <span className={cn(
+              "font-black text-xs uppercase tracking-tight leading-none",
+              shortcut.text
+            )}>
               {shortcut.label}
             </span>
           </motion.button>
