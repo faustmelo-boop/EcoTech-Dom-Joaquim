@@ -34,13 +34,22 @@ export default function FoodWasteRegistration({ addFoodWaste, classes, profile, 
 
   return (
     <div className="space-y-12 pb-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-           <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-amber-950 tracking-tighter uppercase underline decoration-amber-400 decoration-8 underline-offset-8 transition-all">Combate ao Desperdício</h2>
-           <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mt-4">Monitoramento da merenda e aceitação do cardápio</p>
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-3 py-1 bg-amber-100 w-fit rounded-full">
+            <Utensils className="w-3 h-3 text-amber-600" />
+            <span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">Alimentação</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-stone-900 tracking-tighter uppercase leading-none underline decoration-amber-400 decoration-8 underline-offset-8">
+            Desperdício Zero
+          </h2>
+          <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] max-w-sm leading-relaxed">
+             Monitore o descarte da merenda escolar e ajude a otimizar o consumo consciente na nossa escola.
+          </p>
         </div>
-        <div className="flex items-center gap-2 bg-amber-50 px-4 py-2 rounded-2xl border border-amber-100">
-           <Badge className="bg-amber-100 text-amber-800 border-none font-black">PROJETO ZERO DESPERDÍCIO</Badge>
+        <div className="hidden md:block bg-stone-100 p-6 rounded-[2.5rem] border-2 border-dashed border-stone-200">
+           <Utensils className="w-10 h-10 text-stone-300" />
         </div>
       </div>
 

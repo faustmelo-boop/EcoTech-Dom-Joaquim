@@ -110,6 +110,21 @@
       },
       "required": ["id", "title", "youtubeId"]
     },
+    "SupportTicket": {
+      "title": "Chamado de Suporte",
+      "description": "Mensagem enviada por um professor ao administrador.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "teacherId", "teacherName", "message", "status", "createdAt"]
+    },
     "RemoteSession": {
       "title": "Sessão Remota",
       "description": "Sessão de controle remoto para apresentações.",
@@ -152,6 +167,10 @@
     "/videos/{videoId}": {
       "schema": "Video",
       "description": "Galeria de vídeos educativos de fonte externa."
+    },
+    "/tickets/{ticketId}": {
+      "schema": "SupportTicket",
+      "description": "Lista de chamados de suporte."
     },
     "/remote_sessions/{sessionId}": {
       "schema": "RemoteSession",

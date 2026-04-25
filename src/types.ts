@@ -67,6 +67,16 @@ export interface Video {
   addedAt: string;
 }
 
+export interface SupportTicket {
+  id: string;
+  teacherId: string;
+  teacherName: string;
+  subject: string;
+  message: string;
+  status: 'open' | 'closed';
+  createdAt: string;
+}
+
 export type Level = 'Aprendiz Ambiental 🌱' | 'Protetor 🌿' | 'Guardião 🌳' | 'Herói Sustentável 🌎';
 
 export const LEVEL_THRESHOLDS = [

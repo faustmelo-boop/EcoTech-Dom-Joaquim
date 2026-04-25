@@ -1,11 +1,21 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Trophy, Star, Rocket, Cloud, Leaf, ChevronRight, Users, ArrowRight, Trees, Bird, Wind, Flower2 } from 'lucide-react';
+import { Trophy, Star, Rocket, Cloud, Leaf, ChevronRight, Users, ArrowRight, Trees, Bird, Wind, Flower2, Gamepad2 } from 'lucide-react';
 import { Card } from './UI';
 import { cn } from '../lib/utils';
 import { getLevelInfo } from '../types';
 
-export default function WelcomeDashboard({ classes, onTeacherLogin }: { classes: any[], onTeacherLogin: () => void }) {
+export default function WelcomeDashboard({ 
+  classes, 
+  onTeacherLogin,
+  onAbout,
+  onGuestPlay
+}: { 
+  classes: any[], 
+  onTeacherLogin: () => void,
+  onAbout: () => void,
+  onGuestPlay: () => void
+}) {
   const sortedClasses = [...classes].sort((a, b) => b.points - a.points);
   const alphaClasses = [...classes].sort((a, b) => a.name.localeCompare(b.name));
   const topClasses = sortedClasses.slice(0, 3); // Focar nos Top 3 no layout principal
@@ -126,7 +136,7 @@ export default function WelcomeDashboard({ classes, onTeacherLogin }: { classes:
                     <div className="absolute top-0 left-0 w-full h-1 bg-white/30" />
                     <span className="text-3xl font-black text-stone-400">2º</span>
                     <p className="text-[8px] font-black uppercase text-stone-600 text-center truncate w-full mt-1">{topClasses[1].name}</p>
-                    <p className="text-[10px] font-black text-emerald-700 mt-1">{topClasses[1].points} pts</p>
+                    <p className="text-[10px] font-black text-emerald-700 mt-1">{topClasses[1].points} EcoPontos</p>
                   </div>
                 </motion.div>
               )}
@@ -150,7 +160,7 @@ export default function WelcomeDashboard({ classes, onTeacherLogin }: { classes:
                     <Star className="absolute top-4 w-4 h-4 text-yellow-300 fill-yellow-300 animate-pulse" />
                     <span className="text-5xl font-black text-white relative z-10">1º</span>
                     <p className="text-[10px] font-black uppercase text-emerald-100 text-center truncate w-full mt-2 relative z-10">{topClasses[0].name}</p>
-                    <p className="text-sm font-black text-lime-400 mt-1 relative z-10">{topClasses[0].points} pts</p>
+                    <p className="text-sm font-black text-lime-400 mt-1 relative z-10">{topClasses[0].points} EcoPontos</p>
                   </div>
                 </motion.div>
               )}
@@ -170,7 +180,7 @@ export default function WelcomeDashboard({ classes, onTeacherLogin }: { classes:
                     <div className="absolute top-0 left-0 w-full h-1 bg-white/30" />
                     <span className="text-3xl font-black text-orange-400">3º</span>
                     <p className="text-[8px] font-black uppercase text-orange-800 text-center truncate w-full mt-1">{topClasses[2].name}</p>
-                    <p className="text-[10px] font-black text-orange-900 mt-1">{topClasses[2].points} pts</p>
+                    <p className="text-[10px] font-black text-orange-900 mt-1">{topClasses[2].points} EcoPontos</p>
                   </div>
                 </motion.div>
               )}
@@ -180,7 +190,63 @@ export default function WelcomeDashboard({ classes, onTeacherLogin }: { classes:
           )}
         </div>
 
-        {/* Action Button - Simplified */}
+        {/* Discovery Zone - Integrated Buttons */}
+        <div className="mt-16 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.button 
+              whileHover={{ y: -5 }}
+              onClick={onGuestPlay}
+              className="group relative h-32 bg-emerald-600 rounded-[2.5rem] p-6 shadow-xl shadow-emerald-200 overflow-hidden text-left"
+            >
+              <div className="relative z-10 flex flex-col justify-between h-full">
+                <div className="bg-white/20 p-2 rounded-xl w-fit">
+                  <Gamepad2 className="w-5 h-5 text-white" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase text-emerald-200 tracking-widest leading-none">Acesso Livre</span>
+                  <p className="text-xl font-black text-white uppercase tracking-tighter leading-none">Jogar Agora</p>
+                </div>
+              </div>
+              <Gamepad2 className="absolute -bottom-4 -right-4 w-24 h-24 text-white/10 group-hover:scale-110 transition-transform duration-500" />
+            </motion.button>
+
+            <motion.button 
+              whileHover={{ y: -5 }}
+              onClick={onAbout}
+              className="group relative h-32 bg-white border-2 border-stone-100 rounded-[2.5rem] p-6 shadow-xl shadow-stone-200/40 overflow-hidden text-left"
+            >
+              <div className="relative z-10 flex flex-col justify-between h-full">
+                <div className="bg-sky-50 p-2 rounded-xl w-fit">
+                  <Trees className="w-5 h-5 text-sky-600" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest leading-none">Institucional</span>
+                  <p className="text-xl font-black text-stone-900 uppercase tracking-tighter leading-none">Sobre o Projeto</p>
+                </div>
+              </div>
+              <Trees className="absolute -bottom-4 -right-4 w-24 h-24 text-stone-900/5 group-hover:scale-110 transition-transform duration-500" />
+            </motion.button>
+
+            <motion.button 
+              whileHover={{ y: -5 }}
+              onClick={onTeacherLogin}
+              className="group relative h-32 bg-stone-900 rounded-[2.5rem] p-6 shadow-xl shadow-stone-900/20 overflow-hidden text-left"
+            >
+              <div className="relative z-10 flex flex-col justify-between h-full">
+                <div className="bg-white/10 p-2 rounded-xl w-fit">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase text-white/40 tracking-widest leading-none">Educadores</span>
+                  <p className="text-xl font-black text-white uppercase tracking-tighter leading-none">Acesso Portal</p>
+                </div>
+              </div>
+              <ArrowRight className="absolute bottom-6 right-6 w-8 h-8 text-white/20 group-hover:translate-x-2 transition-transform duration-500" />
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Action Button - Moved below Buttons directly */}
         <div className="grid grid-cols-1 gap-4 pt-8">
            <div className="bg-white p-6 rounded-[2.5rem] border border-stone-100 shadow-xl flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -230,7 +296,7 @@ export default function WelcomeDashboard({ classes, onTeacherLogin }: { classes:
                       </div>
                     </div>
                     <div className="bg-emerald-50 px-4 py-2 rounded-2xl">
-                      <span className="font-black text-emerald-600 text-xs">{item.points} pts</span>
+                      <span className="font-black text-emerald-600 text-xs">{item.points} EcoPontos</span>
                     </div>
                   </motion.div>
                 );
@@ -239,19 +305,11 @@ export default function WelcomeDashboard({ classes, onTeacherLogin }: { classes:
         </div>
       </div>
 
-      {/* Improved Bottom Access */}
-      <footer className="fixed bottom-0 left-0 right-0 p-8 pb-10 flex justify-center z-[100] bg-gradient-to-t from-[#f9fbf2] via-[#f9fbf2]/80 to-transparent">
-        <button 
-          onClick={onTeacherLogin}
-          className="group relative h-16 px-10 bg-emerald-700 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl active:scale-95 transition-all flex items-center gap-3 overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-stone-900 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-          <span className="relative z-10">Acesso do Professor</span>
-          <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
-        </button>
+      {/* Simplified Footer */}
+      <footer className="py-12 text-center">
+         <p className="text-stone-300 font-black uppercase tracking-[0.4em] text-[10px]">EcoTech Dom Joaquim • 2024</p>
       </footer>
       </div>
     </div>
   );
 }
-

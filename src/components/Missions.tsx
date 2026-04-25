@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Button, Badge } from './UI';
 import { Target, Plus, CheckCircle2, Trash2, Trophy, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
 export default function Missions({ missions, classes, addMission, toggleMission, deleteMission, completeMission, isAdmin, profile }: any) {
@@ -35,58 +36,80 @@ export default function Missions({ missions, classes, addMission, toggleMission,
 
   return (
     <div className="space-y-12 pb-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-3xl sm:text-4xl font-black text-emerald-950 tracking-tighter uppercase underline decoration-lime-400 decoration-8 underline-offset-8 transition-all">Missões Eco</h2>
-          <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mt-4">Desafios que valem pontos e mudam o mundo</p>
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 w-fit rounded-full">
+            <Target className="w-3 h-3 text-emerald-600" />
+            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Desafios</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-stone-900 tracking-tighter uppercase leading-none underline decoration-lime-400 decoration-8 underline-offset-8">
+            Missões Eco
+          </h2>
+          <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] max-w-sm leading-relaxed">
+             Participe de desafios exclusivos que valem pontos preciosos no ranking e transformam a realidade local.
+          </p>
+        </div>
+        <div className="hidden md:block bg-stone-100 p-6 rounded-[2.5rem] border-2 border-dashed border-stone-200">
+          <Target className="w-10 h-10 text-stone-300" />
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Active and List */}
-        <div className={cn("space-y-8", isAdmin ? "lg:col-span-2" : "lg:col-span-3")}>
-           {activeMission && (
-             <Card className="bg-emerald-900 text-white border-none p-10 relative overflow-hidden group">
-                <div className="relative z-10 space-y-6">
-                   <div className="flex items-center gap-2">
-                      <Badge className="bg-lime-400 text-emerald-900 border-none font-black text-xs px-4">MISSÃO ATIVA</Badge>
-                      {activeMission.difficulty && (
-                         <Badge className="bg-emerald-800 text-emerald-300 border-none font-black text-[10px] px-3">
-                           {activeMission.difficulty}
-                         </Badge>
-                      )}
-                      <div className="flex items-center gap-2 text-emerald-200 ml-auto">
-                         <Clock className="w-4 h-4" />
-                         <span className="font-bold text-xs uppercase tracking-widest">Tempo Limitado</span>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+        {/* Active Mission - Main Bento Piece */}
+        <div className="md:col-span-12 lg:col-span-8 space-y-8">
+           {activeMission ? (
+             <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               className="bg-emerald-950 p-12 rounded-[3.5rem] text-white relative overflow-hidden group shadow-2xl shadow-emerald-900/40"
+             >
+                <div className="relative z-10 space-y-8">
+                   <div className="flex flex-wrap items-center gap-4">
+                      <Badge className="bg-lime-400 text-emerald-950 border-none font-black text-xs px-6 py-2 rounded-full tracking-widest">DESAFIO ATIVO</Badge>
+                      <div className="flex items-center gap-2 text-emerald-400 font-bold text-[10px] uppercase tracking-[0.2em] bg-white/5 px-4 py-1.5 rounded-full border border-white/10 backdrop-blur-md">
+                         <Clock className="w-3.5 h-3.5" />
+                         <span>Expira em breve</span>
                       </div>
                    </div>
                    
-                   <div className="space-y-2">
-                     <h3 className="text-5xl font-black tracking-tighter leading-tight">{activeMission.title}</h3>
-                     <p className="text-emerald-100/70 text-lg font-medium max-w-xl">{activeMission.description}</p>
+                   <div className="space-y-4">
+                     <h3 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] uppercase">{activeMission.title}</h3>
+                     <p className="text-emerald-100/70 text-lg md:text-xl font-medium max-w-2xl leading-relaxed">{activeMission.description}</p>
                    </div>
-
+ 
+                   <div className="flex flex-wrap items-center gap-8 pt-4">
+                      <div className="flex flex-col">
+                         <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest leading-none mb-1">Recompensa</span>
+                         <span className="text-3xl font-black text-lime-400 tracking-tighter">+{activeMission.points} EcoPontos</span>
+                      </div>
+                      <div className="h-10 w-[1px] bg-white/10 hidden md:block" />
+                      <div className="flex flex-col">
+                         <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest leading-none mb-1">Dificuldade</span>
+                         <span className="text-xl font-black tracking-tighter">{activeMission.difficulty || 'Normal'}</span>
+                      </div>
+                   </div>
+ 
                    {canComplete && (
-                     <div className="flex flex-col md:flex-row items-end gap-6 pt-4">
+                     <div className="flex flex-col md:flex-row items-end gap-6 pt-6 border-t border-white/10">
                         {isAdmin ? (
-                          <div className="flex-1 w-full space-y-2">
-                             <label className="text-[10px] font-black uppercase text-emerald-400 tracking-widest ml-1">Completar para Turma:</label>
+                          <div className="flex-1 w-full space-y-3">
+                             <label className="text-[10px] font-black uppercase text-emerald-400 tracking-[0.2em] ml-1">Turma Vencedora</label>
                              <select 
                                 value={selectedClass}
                                 onChange={(e) => setSelectedClass(e.target.value)}
-                                className="w-full bg-emerald-800 border-2 border-emerald-700/50 rounded-2xl px-5 py-4 font-bold text-white focus:outline-none focus:border-lime-400 transition-all appearance-none"
+                                className="w-full bg-emerald-900/50 border-2 border-emerald-800 rounded-3xl px-6 py-5 font-black text-white focus:outline-none focus:border-lime-400 transition-all appearance-none shadow-inner"
                              >
-                                <option value="">Selecione a turma vencedora...</option>
+                                <option value="">Escolha a turma...</option>
                                 {classes.map((c: any) => (
-                                  <option key={c.id} value={c.id}>{c.name} - {c.teamName}</option>
+                                  <option key={c.id} value={c.id}>{c.name}</option>
                                 ))}
                              </select>
                           </div>
                         ) : (
-                          <div className="flex-1 w-full space-y-2">
-                             <label className="text-[10px] font-black uppercase text-emerald-400 tracking-widest ml-1">Sua Turma:</label>
-                             <div className="w-full bg-emerald-800/50 border-2 border-emerald-700/50 rounded-2xl px-5 py-4 font-bold text-white">
-                               {teacherClass.name} - {teacherClass.teamName}
+                          <div className="flex-1 w-full space-y-3">
+                             <label className="text-[10px] font-black uppercase text-emerald-400 tracking-widest ml-1">Sua Equipe</label>
+                             <div className="w-full bg-emerald-900/30 border-2 border-emerald-800 rounded-3xl px-6 py-5 font-black text-white/50">
+                               {teacherClass.name}
                              </div>
                           </div>
                         )}
@@ -96,143 +119,167 @@ export default function Missions({ missions, classes, addMission, toggleMission,
                              if (targetClassId) {
                                completeMission(targetClassId, activeMission.id);
                                setSelectedClass('');
-                               alert('Pontos de missão adicionados com sucesso!');
                              }
                            }}
                            disabled={isAdmin ? !selectedClass : !teacherClass}
-                           className="h-16 w-full md:w-auto px-10 bg-lime-400 text-emerald-950 hover:bg-lime-500 rounded-2xl"
+                           className="h-20 w-full md:w-auto px-12 bg-lime-400 text-emerald-950 hover:bg-lime-500 rounded-3xl font-black uppercase tracking-widest text-xs shadow-xl shadow-lime-900/20 active:scale-95 transition-all"
                          >
-                           Concluir Missão & Ganhar {activeMission.points} pts
+                           Registrar Conquista
                         </Button>
                      </div>
                    )}
                 </div>
-                <div className="absolute -top-10 -right-10 opacity-10 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
-                   <Trophy className="w-80 h-80 rotate-12" />
+                <div className="absolute -top-20 -right-20 opacity-[0.03] group-hover:scale-125 transition-transform duration-[2s] pointer-events-none">
+                   <Trophy className="w-[30rem] h-[30rem] rotate-12" />
                 </div>
-             </Card>
+             </motion.div>
+           ) : (
+             <div className="bg-stone-50 border-4 border-dashed border-stone-100 rounded-[3.5rem] py-32 flex flex-col items-center justify-center text-center px-8">
+                <Target className="w-20 h-20 text-stone-200 mb-6" />
+                <h3 className="text-3xl font-black text-stone-300 uppercase leading-none">Aguardando Missão</h3>
+                <p className="text-stone-300 font-bold max-w-xs mt-2">Novas missões são publicadas semanalmente pela coordenação.</p>
+             </div>
            )}
-
-           <div className="space-y-4">
-              <h4 className="text-xs font-black uppercase text-stone-400 tracking-[0.3em] ml-2">Banco de Desafios</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {missions.map((m: any) => (
-                  <Card key={m.id} className={cn("relative p-6 border-2 transition-all", m.active ? "border-emerald-500 bg-emerald-50" : "border-stone-100")}>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-start">
-                         <div className="flex gap-2">
-                           <div className={cn("p-3 rounded-xl", m.active ? "bg-emerald-500 text-white" : "bg-stone-50 text-stone-400")}>
-                              <Target className="w-5 h-5" />
-                           </div>
-                           {m.difficulty && (
-                             <div className={cn("px-3 py-1 rounded-lg text-[8px] font-black uppercase flex items-center", getDifficultyColor(m.difficulty))}>
-                               {m.difficulty}
-                             </div>
-                           )}
+ 
+           {/* Secondary Grid Pieces */}
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {missions.filter((m:any) => !m.active).slice(0, 4).map((m: any) => (
+                <motion.div 
+                  key={m.id}
+                  whileHover={{ y: -5 }}
+                  className="bg-white p-8 rounded-[2.5rem] border border-stone-100 shadow-xl shadow-stone-200/30 flex flex-col justify-between group"
+                >
+                   <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                         <div className={cn("p-4 rounded-2xl", getDifficultyColor(m.difficulty))}>
+                            <Target className="w-6 h-6" />
                          </div>
-                         {isAdmin && (
-                           <button 
-                              onClick={() => deleteMission(m.id)}
-                              className="text-stone-300 hover:text-rose-500 p-2 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                           </button>
-                         )}
+                         <span className="text-xl font-black text-stone-900 tracking-tighter">+{m.points} EcoPontos</span>
                       </div>
-                      
                       <div>
-                        <h5 className="font-black text-stone-900 text-lg leading-tight uppercase mb-1">{m.title}</h5>
-                        <p className="text-xs text-stone-500 font-medium line-clamp-2">{m.description}</p>
+                        <h4 className="text-2xl font-black text-stone-800 uppercase tracking-tighter leading-[0.95] mb-2">{m.title}</h4>
+                        <p className="text-stone-400 text-[11px] font-bold uppercase tracking-widest mb-3">{m.difficulty}</p>
+                        <p className="text-stone-500 text-sm font-medium line-clamp-2 leading-relaxed">{m.description}</p>
                       </div>
-
-                      <div className="flex items-center justify-between pt-2">
-                        <span className="text-emerald-700 font-black text-sm">{m.points} pts</span>
-                        {isAdmin && (
+                   </div>
+                   <div className="mt-8 flex gap-2">
+                      {isAdmin && (
+                        <>
                           <button 
-                             onClick={() => toggleMission(m.id)}
-                             className={cn(
-                               "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                               m.active ? "bg-emerald-600 text-white" : "bg-stone-100 text-stone-400 hover:bg-stone-200"
-                             )}
+                            onClick={() => toggleMission(m.id)}
+                            className="flex-1 bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest py-4 rounded-2xl hover:bg-emerald-700 transition-colors"
                           >
-                            {m.active ? 'Ativa' : 'Ativar'}
+                            Ativar
                           </button>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                          <button 
+                            onClick={() => deleteMission(m.id)}
+                            className="p-4 bg-stone-50 text-stone-300 hover:text-rose-500 rounded-2xl transition-all"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
+                   </div>
+                </motion.div>
+              ))}
            </div>
         </div>
-
-        {/* Create Sidebar */}
-        {isAdmin && (
-          <div className="lg:col-span-1">
-             <Card title="Criar Nova Missão" icon={<Plus className="w-5 h-5" />}>
-                <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+ 
+        {/* Right Sidebar Pieces */}
+        <div className="md:col-span-12 lg:col-span-4 space-y-8">
+           {isAdmin && (
+             <Card className="rounded-[3rem] p-8 border-stone-100 shadow-2xl shadow-stone-200/40" title="Novo Desafio" icon={<Plus className="w-5 h-5" />}>
+                <form onSubmit={handleSubmit} className="space-y-6 mt-6">
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest ml-1">Título da Missão</label>
-                     <input 
-                       type="text" 
-                       value={title}
-                       onChange={(e) => setTitle(e.target.value)}
-                       placeholder="Ex: Horta Comunitária"
-                       className="w-full bg-stone-50 border-2 border-stone-100 rounded-2xl px-5 py-4 font-bold text-stone-900 focus:outline-none focus:border-emerald-500 transition-all placeholder:text-stone-300"
-                     />
+                      <label className="text-[10px] font-black uppercase text-stone-400 tracking-[0.2em] ml-1">Nome</label>
+                      <input 
+                        type="text" 
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Ex: Horta Comunitária"
+                        className="w-full bg-stone-50 border-2 border-stone-100 rounded-2xl px-6 py-4 font-bold text-stone-900 focus:outline-none focus:border-emerald-500 transition-all placeholder:text-stone-300"
+                      />
                    </div>
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest ml-1">Instruções</label>
-                     <textarea 
-                       value={desc}
-                       onChange={(e) => setDesc(e.target.value)}
-                       placeholder="Descreva o desafio para os alunos..."
-                       className="w-full bg-stone-50 border-2 border-stone-100 rounded-2xl px-5 py-4 font-bold text-stone-900 focus:outline-none focus:border-emerald-500 transition-all placeholder:text-stone-300 h-32 resize-none"
-                     />
+                      <label className="text-[10px] font-black uppercase text-stone-400 tracking-[0.2em] ml-1">Descrição</label>
+                      <textarea 
+                        value={desc}
+                        onChange={(e) => setDesc(e.target.value)}
+                        placeholder="Instruções para os alunos..."
+                        className="w-full bg-stone-50 border-2 border-stone-100 rounded-2xl px-6 py-4 font-bold text-stone-900 focus:outline-none focus:border-emerald-500 transition-all h-32 resize-none"
+                      />
                    </div>
+                   
+                   <div className="grid grid-cols-3 gap-2">
+                      {(['Iniciante', 'Intermediário', 'Avançado'] as const).map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setDifficulty(d)}
+                          className={cn(
+                            "py-3 rounded-xl font-black text-[8px] uppercase tracking-widest transition-all",
+                            difficulty === d ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" : "bg-stone-50 text-stone-400"
+                          )}
+                        >
+                          {d}
+                        </button>
+                      ))}
+                   </div>
+ 
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest ml-1">Dificuldade</label>
-                     <div className="flex gap-2">
-                        {(['Iniciante', 'Intermediário', 'Avançado'] as const).map((d) => (
-                          <button
-                           key={d}
-                           type="button"
-                           onClick={() => setDifficulty(d)}
-                           className={cn(
-                             "flex-1 py-3 rounded-xl font-black text-[10px] transition-all",
-                             difficulty === d ? "bg-emerald-600 text-white" : "bg-stone-50 text-stone-400 border border-stone-100"
-                           )}
-                          >
-                            {d}
-                          </button>
-                        ))}
-                     </div>
+                      <label className="text-[10px] font-black uppercase text-stone-400 tracking-[0.2em] ml-1">Ponto</label>
+                      <div className="flex gap-2">
+                         {[30, 50, 100, 200].map((p) => (
+                           <button
+                             key={p}
+                             type="button"
+                             onClick={() => setPoints(p.toString())}
+                             className={cn(
+                               "flex-1 py-3 rounded-xl font-black text-xs transition-all",
+                               points === p.toString() ? "bg-stone-900 text-white" : "bg-stone-50 text-stone-400"
+                             )}
+                           >
+                             {p}
+                           </button>
+                         ))}
+                      </div>
                    </div>
-                   <div className="space-y-2">
-                     <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest ml-1">Pontuação Sugerida</label>
-                     <div className="flex gap-2">
-                        {[20, 30, 50, 100, 200].map((p) => (
-                          <button
-                           key={p}
-                           type="button"
-                           onClick={() => setPoints(p.toString())}
-                           className={cn(
-                             "flex-1 py-3 rounded-xl font-black text-xs transition-all",
-                             points === p.toString() ? "bg-emerald-600 text-white" : "bg-stone-50 text-stone-400 border border-stone-100"
-                           )}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                     </div>
-                   </div>
-                   <Button type="submit" className="w-full h-16 shadow-lg shadow-emerald-500/20">
-                      Criar Desafio
+ 
+                   <Button type="submit" className="w-full h-16 rounded-2xl shadow-xl shadow-emerald-100">
+                      Criar Missão
                    </Button>
                 </form>
              </Card>
-          </div>
-        )}
+           )}
+           
+           {/* Achievement Stats Piece */}
+           <div className="bg-white p-8 rounded-[3rem] border border-stone-100 shadow-xl shadow-stone-200/30 overflow-hidden relative group">
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                 <div>
+                    <h3 className="text-xl font-black text-stone-900 uppercase tracking-tighter leading-none mb-1">Mural de Glória</h3>
+                    <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Últimas Conclusões</p>
+                 </div>
+                 
+                 <div className="mt-8 space-y-4">
+                    {classes.slice(0, 3).map((c: any, idx: number) => (
+                      <div key={c.id} className="flex items-center gap-4 group/item">
+                         <div className="w-10 h-10 rounded-xl bg-stone-50 flex items-center justify-center font-black text-stone-400 group-hover/item:bg-lime-400 group-hover/item:text-emerald-950 transition-colors">
+                            {idx + 1}
+                         </div>
+                         <div className="flex-1 overflow-hidden">
+                            <p className="text-sm font-black text-stone-800 tracking-tight leading-none truncate mb-1">{c.name}</p>
+                            <p className="text-[9px] font-black uppercase text-stone-400 tracking-widest">{c.teamName}</p>
+                         </div>
+                         <CheckCircle2 className="w-4 h-4 text-emerald-500 opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                      </div>
+                    ))}
+                 </div>
+              </div>
+              <div className="absolute -bottom-10 -right-10 text-emerald-500/5 rotate-12 transition-transform group-hover:scale-110">
+                 <CheckCircle2 className="w-48 h-48" />
+              </div>
+           </div>
+        </div>
       </div>
     </div>
   );

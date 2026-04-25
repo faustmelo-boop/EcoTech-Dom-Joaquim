@@ -40,27 +40,32 @@ export default function DataRegistration({ classes, addEntry, profile, isAdmin }
 
   return (
     <div className="space-y-10 pb-20 no-scrollbar">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-        <div className="space-y-2">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+        <div className="space-y-4">
           <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 w-fit rounded-full">
             <PlusCircle className="w-3 h-3 text-emerald-600" />
-            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Registros</span>
+            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Coleta</span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-stone-900 tracking-tighter uppercase leading-[0.9]">
-            NOVA COLETA
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-stone-900 tracking-tighter uppercase leading-none underline decoration-lime-400 decoration-8 underline-offset-8 transition-all">
+            Novo Registro
           </h2>
-          <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] max-w-xs leading-relaxed">
-            Transformando resíduos em impacto real para a escola.
+          <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] max-w-sm leading-relaxed">
+             Transforme resíduos em pontos para sua equipe e impacto real para a ecologia da nossa escola.
           </p>
         </div>
-        
-        <div className="bg-white px-6 py-4 rounded-[2.5rem] border-2 border-stone-50 shadow-xl shadow-stone-200/50 flex items-center justify-between gap-6">
-          <div className="text-left">
-            <p className="text-emerald-700 text-[10px] font-black uppercase tracking-widest leading-none mb-1">+5 PONTOS</p>
-            <span className="text-2xl font-black text-stone-900 tracking-tight leading-none">Bônus Agente</span>
+        <div className="flex items-center gap-4">
+          <div className="bg-white px-6 py-4 rounded-[2.5rem] border-2 border-stone-50 shadow-xl shadow-stone-200/50 flex items-center justify-between gap-6">
+            <div className="text-left">
+              <p className="text-emerald-700 text-[10px] font-black uppercase tracking-widest leading-none mb-1">+5 PONTOS</p>
+              <span className="text-2xl font-black text-stone-900 tracking-tight leading-none">Bônus Agente</span>
+            </div>
+            <div className="bg-emerald-100 p-3 rounded-2xl">
+              <CheckCircle2 className="w-6 h-6 text-emerald-600 fill-emerald-600/20" />
+            </div>
           </div>
-          <div className="bg-emerald-100 p-3 rounded-2xl">
-            <CheckCircle2 className="w-6 h-6 text-emerald-600 fill-emerald-600/20" />
+          <div className="hidden md:block bg-stone-100 p-6 rounded-[2.5rem] border-2 border-dashed border-stone-200">
+            <PlusCircle className="w-10 h-10 text-stone-300" />
           </div>
         </div>
       </div>

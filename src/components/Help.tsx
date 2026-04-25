@@ -1,12 +1,26 @@
 import React, { useState } from 'react';
 import { Card, Button, Badge } from './UI';
-import { HelpCircle, BookOpen, MessageCircle, ChevronDown, ChevronUp, LayoutDashboard, Users, PlusCircle, Trophy, Target, BarChart3, Camera, Utensils, Smartphone } from 'lucide-react';
+import { HelpCircle, BookOpen, MessageCircle, ChevronDown, ChevronUp, LayoutDashboard, Users, PlusCircle, Trophy, Target, BarChart3, Camera, Utensils, Smartphone, X, Send, Trash2, CheckCircle2, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { SupportTicket } from '../types';
 
-export default function Help() {
+interface HelpProps {
+  profile: any;
+  isAdmin: boolean;
+  tickets: SupportTicket[];
+  addTicket: (subject: string, message: string, teacherId: string, teacherName: string) => Promise<void>;
+  deleteTicket: (id: string) => Promise<void>;
+  closeTicket: (id: string) => Promise<void>;
+}
+
+export default function Help({ profile, isAdmin, tickets, addTicket, deleteTicket, closeTicket }: HelpProps) {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ticketSubject, setTicketSubject] = useState('');
+  const [ticketMessage, setTicketMessage] = useState('');
 
   const faqs = [
     {
@@ -88,48 +102,48 @@ export default function Help() {
 
   return (
     <div className="space-y-12 pb-12">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-emerald-950 tracking-tighter uppercase underline decoration-lime-400 decoration-8 underline-offset-8 transition-all">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 w-fit rounded-full">
+            <HelpCircle className="w-3 h-3 text-emerald-600" />
+            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Suporte</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-stone-900 tracking-tighter uppercase leading-none underline decoration-lime-400 decoration-8 underline-offset-8 transition-all">
             Centro de Ajuda
           </h2>
-          <p className="text-stone-500 font-bold uppercase tracking-widest text-xs mt-6">Instruções e dúvidas frequentes sobre o EcoTech</p>
+          <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] max-w-sm leading-relaxed">
+             Encontre instruções, tire dúvidas frequentes e aprenda a usar todas as funcionalidades do EcoTech.
+          </p>
         </div>
-        <div className="bg-emerald-100 p-4 rounded-3xl">
-           <HelpCircle className="w-8 h-8 text-emerald-700" />
+        <div className="hidden md:block bg-stone-100 p-6 rounded-[2.5rem] border-2 border-dashed border-stone-200">
+          <HelpCircle className="w-10 h-10 text-stone-300" />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Interactive Features Guide */}
-        <div className="space-y-6">
-           <div className="flex items-center gap-3 mb-2">
-              <BookOpen className="w-5 h-5 text-emerald-500" />
-              <h3 className="text-xl font-black text-emerald-950 uppercase tracking-tighter">Guia de Funcionalidades</h3>
-           </div>
-                      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-[minmax(150px,_auto)]">
+        {/* Main Bento Piece - Functional Guide */}
+        <div className="md:col-span-12 lg:col-span-8 space-y-6">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {features.map((feature, idx) => (
                 <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
                   key={feature.title}
                   className={cn(
-                    "bg-white p-6 rounded-[2rem] border-2 transition-all group cursor-pointer",
-                    activeFeature === feature.id ? "border-emerald-500 shadow-xl" : "border-stone-100 hover:border-emerald-200 shadow-sm"
+                    "bg-white p-8 rounded-[2.5rem] border border-stone-100 transition-all group cursor-pointer shadow-xl shadow-stone-200/20",
+                    activeFeature === feature.id ? "ring-4 ring-emerald-500/20 border-emerald-500" : "hover:border-emerald-200"
                   )}
                   onClick={() => setActiveFeature(activeFeature === feature.id ? null : feature.id)}
                 >
-                   <div className="flex gap-5">
+                   <div className="flex flex-col gap-5">
                       <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform", feature.color)}>
                         <feature.icon className="w-7 h-7" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-black text-stone-900 uppercase tracking-tight mb-1">{feature.title}</h4>
-                        <p className="text-sm text-stone-500 font-medium leading-relaxed">{feature.desc}</p>
-                      </div>
-                      <div className="flex items-center text-stone-300">
-                        {activeFeature === feature.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                        <h4 className="text-xl font-black text-stone-900 uppercase tracking-tighter mb-2">{feature.title}</h4>
+                        <p className="text-xs text-stone-500 font-bold uppercase tracking-widest mb-3">{feature.desc}</p>
                       </div>
                    </div>
                    
@@ -139,70 +153,242 @@ export default function Help() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          className="mt-4 pt-4 border-t border-stone-100"
+                          className="mt-4 pt-4 border-t border-stone-100 overflow-hidden"
                         >
-                           <p className="text-sm text-emerald-900 font-bold leading-relaxed bg-emerald-50 p-4 rounded-2xl">
-                             {feature.detail}
+                           <p className="text-sm text-stone-600 font-medium leading-relaxed italic">
+                             "{feature.detail}"
                            </p>
                         </motion.div>
                       )}
                    </AnimatePresence>
                 </motion.div>
               ))}
-            </div>
+           </div>
         </div>
 
-        {/* FAQ Section */}
-        <div className="space-y-6">
-           <div className="flex items-center gap-3 mb-2">
-              <MessageCircle className="w-5 h-5 text-emerald-500" />
-              <h3 className="text-xl font-black text-emerald-950 uppercase tracking-tighter">Perguntas Frequentes</h3>
-           </div>
-
-           <div className="space-y-4">
-              {faqs.map((faq, index) => (
-                <div key={index} className="bg-stone-50 rounded-2xl overflow-hidden border border-stone-100">
-                   <button 
-                    onClick={() => setActiveFaq(activeFaq === index ? null : index)}
-                    className="w-full flex items-center justify-between p-6 text-left hover:bg-emerald-50 transition-colors"
-                   >
-                      <span className="font-black text-stone-900 tracking-tight">{faq.question}</span>
-                      {activeFaq === index ? <ChevronUp className="w-5 h-5 text-emerald-600" /> : <ChevronDown className="w-5 h-5 text-stone-400" />}
-                   </button>
-                   <AnimatePresence>
-                      {activeFaq === index && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="px-6 pb-6"
-                        >
-                           <p className="text-stone-600 text-sm leading-relaxed font-medium pt-2 border-t border-stone-200">
-                             {faq.answer}
-                           </p>
-                        </motion.div>
-                      )}
-                   </AnimatePresence>
-                </div>
-              ))}
-           </div>
-
-           <Card className="bg-emerald-900 text-white border-none p-8 mt-8">
-              <div className="flex flex-col items-center text-center space-y-4">
-                 <div className="bg-white/10 p-4 rounded-full">
-                    <Target className="w-8 h-8 text-lime-400" />
+        {/* Support Sidebar Piece */}
+        <div className="md:col-span-12 lg:col-span-4 space-y-8">
+           <div className="bg-emerald-950 p-10 rounded-[3rem] text-white flex flex-col justify-between relative overflow-hidden group min-h-[400px]">
+              <div className="relative z-10">
+                 <div className="bg-white/10 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 backdrop-blur-md">
+                    <HelpCircle className="w-8 h-8 text-lime-400" />
                  </div>
-                 <h4 className="text-2xl font-black uppercase tracking-tighter">Precisa de Suporte?</h4>
-                 <p className="text-emerald-100/60 text-sm font-medium">
-                    Se você encontrou algum problema ou tem uma sugestão, procure a coordenação da escola ou entre em contato com o administrador do sistema.
+                 <h3 className="text-4xl font-black tracking-tighter leading-[0.95] uppercase mb-6">Precisa de Suporte?</h3>
+                 <p className="text-emerald-100/60 font-medium leading-relaxed">
+                    Se você encontrou algum problema ou tem uma sugestão, procure a coordenação da escola ou entre em contato com nosso time de TI ambiental.
                  </p>
-                 <Button className="bg-lime-400 text-emerald-950 hover:bg-lime-500 border-none w-full mt-4">
-                    Falar com Suporte
+              </div>
+              
+              <div className="relative z-10 mt-12 bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-md">
+                 <div className="flex items-center gap-4 mb-4">
+                    <div className="w-10 h-10 bg-lime-400 rounded-xl flex items-center justify-center text-emerald-950">
+                       <MessageCircle className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Canal Direto</span>
+                 </div>
+                 <Button 
+                    onClick={() => setShowTicketModal(true)}
+                    className="w-full h-16 bg-lime-400 text-emerald-950 hover:bg-lime-500 rounded-2xl font-black uppercase tracking-widest text-xs"
+                 >
+                    Abrir Chamado
                  </Button>
               </div>
-           </Card>
+
+              <div className="absolute -bottom-20 -right-20 opacity-5 group-hover:scale-110 transition-transform duration-1000 rotate-12">
+                 <HelpCircle className="w-[30rem] h-[30rem]" />
+              </div>
+           </div>
+
+           {/* FAQ Bento Piece */}
+           <div className="bg-white p-8 rounded-[3rem] border border-stone-100 shadow-xl shadow-stone-200/30">
+              <div className="flex items-center gap-3 mb-8">
+                <BookOpen className="w-6 h-6 text-emerald-500" />
+                <h3 className="text-xl font-black text-stone-900 uppercase tracking-tighter">Perguntas Frequentes</h3>
+              </div>
+              <div className="space-y-4">
+                 {faqs.map((faq, index) => (
+                   <div key={index} className="group">
+                      <button 
+                        onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                        className={cn(
+                          "w-full flex items-center justify-between p-6 text-left rounded-2xl transition-all",
+                          activeFaq === index ? "bg-stone-900 text-white" : "bg-stone-50 text-stone-600 hover:bg-stone-100"
+                        )}
+                      >
+                         <span className="font-black text-sm tracking-tight">{faq.question}</span>
+                         {activeFaq === index ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                      <AnimatePresence>
+                         {activeFaq === index && (
+                           <motion.div 
+                             initial={{ height: 0, opacity: 0 }}
+                             animate={{ height: 'auto', opacity: 1 }}
+                             exit={{ height: 0, opacity: 0 }}
+                             className="overflow-hidden"
+                           >
+                              <div className="p-6 text-stone-500 text-sm font-medium leading-relaxed bg-white border-x border-b border-stone-50 rounded-b-2xl">
+                                {faq.answer}
+                              </div>
+                           </motion.div>
+                         )}
+                      </AnimatePresence>
+                   </div>
+                 ))}
+              </div>
+           </div>
         </div>
+
+        {/* Admin Inbox */}
+        {isAdmin && tickets && tickets.length > 0 && (
+           <div className="md:col-span-12 bg-white p-8 rounded-[3rem] border border-stone-100 shadow-xl shadow-stone-200/30">
+              <div className="flex items-center justify-between mb-8">
+                 <div className="flex items-center gap-3">
+                    <div className="bg-emerald-100 p-2 rounded-xl">
+                       <MessageCircle className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <div>
+                       <h3 className="text-xl font-black text-stone-900 uppercase tracking-tighter">Inbox de Suporte</h3>
+                       <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{tickets.filter((t: any) => t.status === 'open').length} chamados abertos</p>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 {[...tickets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((ticket) => (
+                    <div key={ticket.id} className="p-6 bg-stone-50 rounded-3xl border border-stone-100 group relative">
+                       <div className="flex justify-between items-start mb-3">
+                          <div>
+                             <Badge variant={ticket.status === 'open' ? 'emerald' : 'stone'} className="mb-2">
+                                {ticket.status === 'open' ? 'Aberto' : 'Resolvido'}
+                             </Badge>
+                             <h4 className="font-black text-stone-900 text-sm leading-tight">{ticket.subject}</h4>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             {ticket.status === 'open' && (
+                                <button 
+                                   onClick={() => closeTicket(ticket.id)}
+                                   className="p-2 bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                   title="Marcar como resolvido"
+                                >
+                                   <CheckCircle2 className="w-4 h-4" />
+                                </button>
+                             )}
+                             <button 
+                                onClick={() => deleteTicket(ticket.id)}
+                                className="p-2 bg-rose-100 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                                title="Excluir chamado"
+                             >
+                                <Trash2 className="w-4 h-4" />
+                             </button>
+                          </div>
+                       </div>
+                       <p className="text-xs text-stone-600 font-medium leading-relaxed italic mb-4">"{ticket.message}"</p>
+                       <div className="flex items-center justify-between pt-4 border-t border-stone-200/50">
+                          <div className="flex items-center gap-2">
+                             <div className="w-6 h-6 bg-stone-200 rounded-lg flex items-center justify-center text-[10px] font-black text-stone-500">
+                                {ticket.teacherName?.charAt(0)}
+                             </div>
+                             <span className="text-[10px] font-black text-stone-400 uppercase">{ticket.teacherName}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-stone-300">
+                             <Clock className="w-3 h-3" />
+                             {new Date(ticket.createdAt).toLocaleDateString('pt-BR')}
+                          </div>
+                       </div>
+                    </div>
+                 ))}
+              </div>
+           </div>
+        )}
       </div>
+
+      {/* Ticket Modal */}
+      <AnimatePresence>
+         {showTicketModal && (
+            <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+               <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowTicketModal(false)}
+                  className="absolute inset-0 bg-stone-900/60 backdrop-blur-md"
+               />
+               <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="relative w-full max-w-lg bg-white rounded-[3rem] shadow-2xl overflow-hidden p-8 md:p-10"
+               >
+                  <div className="flex items-center justify-between mb-8">
+                     <div className="flex items-center gap-4">
+                        <div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg">
+                           <MessageCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                           <h3 className="text-2xl font-black text-stone-900 tracking-tighter uppercase">Abrir Chamado</h3>
+                           <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Suporte Direto</p>
+                        </div>
+                     </div>
+                     <button 
+                        onClick={() => setShowTicketModal(false)}
+                        className="p-3 bg-stone-100 rounded-2xl text-stone-400 hover:text-stone-900 transition-colors"
+                     >
+                        <X className="w-6 h-6" />
+                     </button>
+                  </div>
+
+                  <form onSubmit={async (e) => {
+                     e.preventDefault();
+                     if (!ticketSubject || !ticketMessage) return;
+                     setIsSubmitting(true);
+                     try {
+                        await addTicket(ticketSubject, ticketMessage, profile.id, profile.name);
+                        setShowTicketModal(false);
+                        setTicketSubject('');
+                        setTicketMessage('');
+                     } finally {
+                        setIsSubmitting(false);
+                     }
+                  }} className="space-y-6">
+                     <div className="space-y-2">
+                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">Assunto</label>
+                        <input 
+                           type="text"
+                           required
+                           value={ticketSubject}
+                           onChange={(e) => setTicketSubject(e.target.value)}
+                           className="w-full bg-stone-50 border-2 border-transparent rounded-2xl px-6 py-4 font-bold text-sm focus:outline-none focus:border-emerald-500 focus:bg-white transition-all shadow-inner"
+                           placeholder="Ex: Dúvida sobre o Ranking"
+                        />
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">Mensagem</label>
+                        <textarea 
+                           required
+                           value={ticketMessage}
+                           onChange={(e) => setTicketMessage(e.target.value)}
+                           className="w-full bg-stone-50 border-2 border-transparent rounded-2xl px-6 py-4 font-bold text-sm focus:outline-none focus:border-emerald-500 focus:bg-white transition-all shadow-inner min-h-[150px] resize-none"
+                           placeholder="Descreva detalhadamente sua dúvida ou sugestão..."
+                        />
+                     </div>
+                     
+                     <Button 
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full h-20 bg-stone-900 text-white hover:bg-emerald-600 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                     >
+                        {isSubmitting ? 'Enviando...' : (
+                           <>
+                              <Send className="w-5 h-5" />
+                              Enviar Mensagem
+                           </>
+                        )}
+                     </Button>
+                  </form>
+               </motion.div>
+            </div>
+         )}
+      </AnimatePresence>
     </div>
   );
 }

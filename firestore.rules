@@ -96,6 +96,15 @@ service cloud.firestore {
              data.youtubeId is string && data.youtubeId.size() <= 50;
     }
 
+    function isValidSupportTicket(data) {
+      return data.keys().hasAll(['id', 'teacherId', 'teacherName', 'subject', 'message', 'status', 'createdAt']) &&
+             data.keys().size() <= 7 &&
+             data.teacherId == request.auth.uid &&
+             data.subject is string && data.subject.size() <= 200 &&
+             data.message is string && data.message.size() <= 2000 &&
+             data.status in ['open', 'closed'];
+    }
+
     // --- Matches ---
 
     match /users/{userId} {
@@ -160,6 +169,11 @@ service cloud.firestore {
     match /videos/{videoId} {
       allow read: if true;
       allow create, update, delete: if isAdmin() && isValidVideo(incoming()) && isValidId(videoId);
+    }
+
+    match /tickets/{ticketId} {
+      allow read, update, delete: if isAdmin();
+      allow create: if isSignedIn() && isValidSupportTicket(incoming()) && isValidId(ticketId);
     }
 
     match /remote_sessions/{sessionId} {

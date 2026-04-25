@@ -44,19 +44,24 @@ import FoodWasteRegistration from './components/FoodWasteRegistration';
 import Ranking from './components/Ranking';
 import Missions from './components/Missions';
 import Reports from './components/Reports';
-import VisualLog from './components/VisualLog';
 import WelcomeDashboard from './components/WelcomeDashboard';
 import Help from './components/Help';
 import Games from './components/Games';
 import Play from './components/Play';
+import About from './components/About';
+import GuestGames from './components/GuestGames';
+import InstallBanner from './components/InstallBanner';
 
-type View = 'dashboard' | 'classes' | 'data' | 'ranking' | 'missions' | 'reports' | 'logs' | 'help' | 'games' | 'play';
+type View = 'dashboard' | 'classes' | 'data' | 'ranking' | 'missions' | 'reports' | 'help' | 'games' | 'play' | 'about';
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showTeacherArea, setShowTeacherArea] = useState(false);
+  const [isGameActive, setIsGameActive] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [showGuestGames, setShowGuestGames] = useState(false);
+  const [isGuestMode, setIsGuestMode] = useState(false);
 
   // Handle URL Parameters (Remote Control & Tab)
   React.useEffect(() => {
@@ -111,7 +116,6 @@ function AppContent() {
     { id: 'ranking', label: 'Ranking Escolar', icon: Trophy, adminOnly: true },
     { id: 'missions', label: 'Missões Eco', icon: Target },
     { id: 'reports', label: 'Relatórios', icon: BarChart3, adminOnly: true },
-    { id: 'logs', label: 'Diário de Bordo', icon: Camera },
     { id: 'games', label: 'Eco Games', icon: Gamepad2 },
     { id: 'play', label: 'Eco Play', icon: PlayCircle },
     { id: 'help', label: 'Ajuda & FAQ', icon: HelpCircle },
@@ -120,7 +124,7 @@ function AppContent() {
   const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
   const mainNavItems = filteredNavItems.filter(item => 
-    ['dashboard', 'data', 'missions', 'games', 'logs'].includes(item.id)
+    ['dashboard', 'data', 'missions', 'games'].includes(item.id)
   ).slice(0, 5);
 
   if (authLoading || ecoState.loading) {
@@ -140,11 +144,21 @@ function AppContent() {
   const params = new URLSearchParams(window.location.search);
   const isRemote = params.get('remote') && params.get('tab') === 'games';
 
-  if (!showTeacherArea && !user && !isRemote) {
+  if (showAbout) {
+    return <About onBack={() => setShowAbout(false)} />;
+  }
+
+  if (showGuestGames) {
+    return <GuestGames classes={ecoState.classes} onBack={() => setShowGuestGames(false)} />;
+  }
+
+  if (!showTeacherArea && !user && !isRemote && !isGuestMode) {
     return (
       <WelcomeDashboard 
         classes={ecoState.classes} 
         onTeacherLogin={() => setShowTeacherArea(true)} 
+        onAbout={() => setShowAbout(true)}
+        onGuestPlay={() => setShowGuestGames(true)}
       />
     );
   }
@@ -310,16 +324,23 @@ function AppContent() {
       case 'ranking': return <Ranking {...ecoState} isAdmin={isAdmin} />;
       case 'missions': return <Missions {...ecoState} isAdmin={isAdmin} profile={profile} />;
       case 'reports': return <Reports {...ecoState} isAdmin={isAdmin} />;
-      case 'logs': return <VisualLog {...ecoState} isAdmin={isAdmin} profile={profile} />;
-      case 'play': return <Play videos={ecoState.videos} addVideo={ecoState.addVideo} deleteVideo={ecoState.deleteVideo} isAdmin={isAdmin} />;
-      case 'games': return <Games classes={ecoState.classes} addGamePoints={ecoState.addGamePoints} profile={profile} isAdmin={isAdmin} />;
-      case 'help': return <Help />;
+      case 'play': return <Play videos={ecoState.videos} addVideo={ecoState.addVideo} deleteVideo={ecoState.deleteVideo} isAdmin={isAdmin} onPlayToggle={setIsGameActive} />;
+      case 'games': return <Games classes={ecoState.classes} addGamePoints={ecoState.addGamePoints} profile={profile} isAdmin={isAdmin} onGameToggle={setIsGameActive} />;
+      case 'help': return <Help 
+        profile={profile} 
+        isAdmin={isAdmin} 
+        tickets={ecoState.tickets}
+        addTicket={ecoState.addTicket}
+        deleteTicket={ecoState.deleteTicket}
+        closeTicket={ecoState.closeTicket}
+      />;
       default: return <Dashboard {...ecoState} onNavigate={setCurrentView} isAdmin={isAdmin} profile={profile} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row font-sans text-stone-900 overflow-hidden">
+      <InstallBanner />
       {/* Mobile Top Bar */}
       <div className="md:hidden flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-xl border-b border-stone-100 z-[100] sticky top-0">
         <div className="flex items-center gap-3">
@@ -347,33 +368,29 @@ function AppContent() {
       {/* Sidebar (Drawer on mobile) */}
       <aside 
         className={cn(
-          "fixed inset-y-0 left-0 z-[200] bg-emerald-800 text-white transform transition-all duration-300 md:relative md:translate-x-0 outline-none",
+          "fixed inset-y-0 left-0 z-[200] bg-zinc-950 text-white transform transition-all duration-500 md:relative md:translate-x-0 outline-none border-r border-white/5 shadow-[20px_0_60px_rgba(0,0,0,0.1)]",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full",
-          isSidebarCollapsed ? "w-20" : "w-72"
+          "w-80"
         )}
       >
         <div className="flex flex-col h-full overflow-hidden relative">
-          {/* Collapse Toggle Desktop */}
-          <button 
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="hidden md:flex absolute -right-3 top-24 bg-emerald-700 text-white p-1 rounded-full border-2 border-emerald-800 shadow-lg hover:bg-emerald-600 transition-all z-[60]"
-          >
-            {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
+          {/* Subtle Gradient Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/20 via-transparent to-transparent pointer-events-none" />
 
-          <div className={cn("p-6 hidden md:flex items-center gap-3 transition-all", isSidebarCollapsed && "px-0 justify-center")}>
-            <div className="bg-white p-2 rounded-xl shadow-lg shrink-0">
-              <Leaf className="w-8 h-8 text-emerald-600 fill-emerald-600" />
+          <div className="px-6 py-8 hidden md:flex items-center gap-4 transition-all relative z-10">
+            <div className="bg-emerald-600 p-2.5 rounded-2xl shadow-xl shadow-emerald-900/40 shrink-0 transform -rotate-3 border border-emerald-500/50">
+              <Leaf className="w-8 h-8 text-white fill-white" />
             </div>
-            {!isSidebarCollapsed && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <h1 className="font-black text-xl tracking-tighter leading-none">EcoTech</h1>
-                <p className="text-emerald-300 text-[9px] font-medium uppercase tracking-widest mt-1">Dom Joaquim de Almeida</p>
-              </motion.div>
-            )}
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
+              <h1 className="font-black text-2xl tracking-tighter leading-none text-white">EcoTech</h1>
+              <p className="text-emerald-500 text-[8px] font-black uppercase tracking-[0.3em] mt-1.5 leading-none">Dom Joaquim</p>
+            </motion.div>
           </div>
 
-          <nav className={cn("flex-1 px-4 py-2 space-y-1 overflow-y-auto no-scrollbar", isSidebarCollapsed && "px-2")}>
+          <nav className="flex-1 px-5 py-2 space-y-1 overflow-y-auto no-scrollbar relative z-10">
+            <div className="mb-2 px-4 text-[10px] font-black text-zinc-600 uppercase tracking-widest">
+              Menu Principal
+            </div>
             {filteredNavItems.map((item) => (
               <button
                 key={item.id}
@@ -381,70 +398,58 @@ function AppContent() {
                   setCurrentView(item.id as View);
                   setIsSidebarOpen(false);
                 }}
-                title={isSidebarCollapsed ? item.label : undefined}
                 className={cn(
-                  "w-full flex items-center rounded-xl transition-all duration-200 group text-left",
-                  isSidebarCollapsed ? "justify-center p-3" : "gap-3 px-4 py-2.5",
+                  "w-full flex items-center rounded-2xl transition-all duration-300 group text-left relative overflow-hidden",
+                  "gap-4 px-4 py-2.5",
                   currentView === item.id 
-                    ? "bg-emerald-100 text-emerald-900 shadow-xl shadow-emerald-900/20" 
-                    : "hover:bg-emerald-700/50 text-emerald-100"
+                    ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30" 
+                    : "hover:bg-white/5 text-zinc-400 hover:text-white"
                 )}
               >
-                <item.icon className={cn(
-                  "shrink-0",
-                  isSidebarCollapsed ? "w-6 h-6" : "w-4 h-4",
-                  currentView === item.id ? "text-emerald-700" : "text-emerald-300 group-hover:text-emerald-100"
-                )} />
-                {!isSidebarCollapsed && (
-                  <span className="font-bold text-sm tracking-tight truncate">{item.label}</span>
+                {currentView === item.id && (
+                  <motion.div 
+                    layoutId="activeSidebar"
+                    className="absolute left-0 w-1 h-1/2 bg-emerald-400 rounded-full"
+                  />
                 )}
+                <item.icon className={cn(
+                  "shrink-0 transition-transform duration-300",
+                  "w-5 h-5",
+                  currentView === item.id ? "scale-110" : "group-hover:scale-110"
+                )} />
+                <span className="font-bold text-sm tracking-tight truncate">{item.label}</span>
               </button>
             ))}
           </nav>
 
-          <div className={cn("p-4 space-y-3 mt-auto", isSidebarCollapsed && "p-2")}>
-            <div className={cn("bg-emerald-900/40 rounded-2xl border border-emerald-700/50 transition-all", isSidebarCollapsed ? "p-2" : "p-3")}>
-              {isSidebarCollapsed ? (
-                <div className="flex justify-center">
-                   {user?.photoURL ? (
-                      <img src={user.photoURL} className="w-8 h-8 rounded-full border border-emerald-500/50" alt="" />
-                   ) : (
-                      <div className="w-8 h-8 bg-emerald-700 rounded-full flex items-center justify-center text-[10px] font-black">
-                        {user?.displayName?.charAt(0)}
-                      </div>
-                   )}
-                </div>
-              ) : (
-                <>
-                  <p className="text-emerald-400 text-[9px] uppercase font-bold tracking-widest mb-1.5 opacity-60">Status Professor</p>
-                  <div className="flex items-center gap-3">
-                     {user?.photoURL ? (
-                        <img src={user.photoURL} className="w-7 h-7 rounded-full border border-emerald-500/50" alt="" />
-                     ) : (
-                        <div className="w-7 h-7 bg-emerald-700 rounded-full flex items-center justify-center text-[10px] font-black">
-                          {user?.displayName?.charAt(0)}
-                        </div>
-                     )}
-                     <div className="overflow-hidden">
-                        <p className="text-[11px] font-black truncate leading-none mb-0.5">{user?.displayName}</p>
-                        <p className="text-[8px] text-emerald-300 truncate opacity-60">
-                           {ecoState.classes.find(c => c.teacherId === profile?.id)?.name || 'Sem turma'}
-                        </p>
-                     </div>
-                  </div>
-                </>
-              )}
+          <div className="p-5 space-y-3 mt-auto border-t border-white/5 bg-black/20">
+            <div className="bg-zinc-900/50 rounded-[2rem] border border-white/5 transition-all overflow-hidden p-4">
+              <div className="flex items-center gap-4">
+                 <div className="relative">
+                    {user?.photoURL ? (
+                       <img src={user.photoURL} className="w-10 h-10 rounded-2xl border-2 border-emerald-500/30 shadow-lg" alt="" />
+                    ) : (
+                       <div className="w-10 h-10 bg-emerald-600 rounded-2xl flex items-center justify-center text-xs font-black shadow-lg">
+                         {user?.displayName?.charAt(0)}
+                       </div>
+                    )}
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-lime-500 border-2 border-zinc-900 rounded-full" />
+                 </div>
+                 <div className="overflow-hidden">
+                    <p className="text-xs font-black truncate leading-none mb-1 text-white">{user?.displayName || 'Eco-Visitante'}</p>
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest truncate leading-none">
+                       {isAdmin ? 'Admin Principal' : (ecoState.classes.find(c => c.teacherId === profile?.id)?.name || 'Aprendiz Eco')}
+                    </p>
+                 </div>
+              </div>
             </div>
             
             <button 
-              onClick={logout}
-              className={cn(
-                "w-full flex items-center text-emerald-300 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest",
-                isSidebarCollapsed ? "justify-center p-2" : "gap-2 px-3 py-2"
-              )}
+              onClick={user ? logout : () => { setIsGuestMode(false); setCurrentView('dashboard'); }}
+              className="w-full flex items-center text-zinc-500 hover:text-rose-500 transition-all text-[10px] font-black uppercase tracking-widest group gap-3 px-4 py-2 hover:bg-rose-500/5 rounded-2xl"
             >
-              <LogOut className={isSidebarCollapsed ? "w-5 h-5" : "w-3 h-3"} />
-              {!isSidebarCollapsed && <span>Sair da Área Restrita</span>}
+              <LogOut className="transition-transform w-4 h-4 group-hover:-translate-x-1" />
+              <span>{user ? 'Sair do Portal' : 'Voltar ao Início'}</span>
             </button>
           </div>
         </div>
@@ -476,39 +481,48 @@ function AppContent() {
       </main>
 
       {/* Mobile Floating Bottom Nav */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 p-6 pointer-events-none z-[100]">
-        <div className="max-w-xs mx-auto flex items-center justify-between bg-white/90 backdrop-blur-2xl rounded-[2.5rem] p-2 border border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] pointer-events-auto">
-          {mainNavItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setCurrentView(item.id as View)}
-              className={cn(
-                "flex-1 flex flex-col items-center justify-center p-3 rounded-[2rem] transition-all relative overflow-hidden",
-                currentView === item.id 
-                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" 
-                  : "text-stone-400"
-              )}
-            >
-              {currentView === item.id && (
-                <motion.div 
-                  layoutId="activeNav"
-                  className="absolute inset-0 bg-emerald-600 -z-10"
-                />
-              )}
-              <item.icon className={cn(
-                "w-5 h-5",
-                currentView === item.id ? "scale-110" : ""
-              )} />
-              <span className={cn(
-                "text-[8px] font-black uppercase tracking-wider mt-1 leading-none",
-                currentView === item.id ? "opacity-100" : "opacity-0 h-0"
-              )}>
-                {item.label.split(' ')[0]}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
+      <AnimatePresence>
+        {!isGameActive && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="md:hidden fixed bottom-0 inset-x-0 p-6 pointer-events-none z-[100]"
+          >
+            <div className="max-w-xs mx-auto flex items-center justify-between bg-white/90 backdrop-blur-3xl rounded-[3rem] p-2 border border-white shadow-[0_25px_60px_rgba(0,0,0,0.15)] pointer-events-auto ring-1 ring-black/5">
+              {mainNavItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setCurrentView(item.id as View)}
+                  className={cn(
+                    "flex-1 flex flex-col items-center justify-center p-3 rounded-[2.5rem] transition-all relative overflow-hidden",
+                    currentView === item.id 
+                      ? "bg-emerald-600 text-white shadow-xl shadow-emerald-200" 
+                      : "text-stone-400 hover:text-stone-600"
+                  )}
+                >
+                  {currentView === item.id && (
+                    <motion.div 
+                      layoutId="activeNav"
+                      className="absolute inset-0 bg-emerald-600 -z-10"
+                    />
+                  )}
+                  <item.icon className={cn(
+                    "w-5 h-5 transition-transform duration-300",
+                    currentView === item.id ? "scale-110" : "group-hover:scale-110"
+                  )} />
+                  <span className={cn(
+                    "text-[7px] font-black uppercase tracking-[0.1em] mt-1.5 leading-none transition-all",
+                    currentView === item.id ? "opacity-100" : "opacity-0 h-0"
+                  )}>
+                    {item.label.split(' ')[0]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

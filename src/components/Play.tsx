@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { Card, Button } from './UI';
 import { Play as PlayIcon, Plus, Trash2, Youtube, X } from 'lucide-react';
+import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { useEffect } from 'react';
 
-export default function Play({ videos, addVideo, deleteVideo, isAdmin }: any) {
+export default function Play({ videos, addVideo, deleteVideo, isAdmin, onPlayToggle }: any) {
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
+
+  useEffect(() => {
+    onPlayToggle?.(!!selectedVideo);
+    return () => onPlayToggle?.(false);
+  }, [selectedVideo, onPlayToggle]);
   
   const getYoutubeId = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -30,22 +37,34 @@ export default function Play({ videos, addVideo, deleteVideo, isAdmin }: any) {
 
   return (
     <div className="space-y-12 pb-12">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-1">
-          <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight uppercase underline decoration-sky-400 decoration-8 underline-offset-8">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 w-fit rounded-full">
+            <PlayIcon className="w-3 h-3 text-emerald-600" />
+            <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Conteúdo</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-stone-900 tracking-tighter uppercase leading-none underline decoration-sky-400 decoration-8 underline-offset-8">
             EcoPlay
           </h2>
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Cine Ambiental & Educação</p>
+          <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] max-w-sm leading-relaxed">
+             Vídeos educativos e tutoriais para fortalecer o aprendizado sustentável de forma lúdica.
+          </p>
         </div>
-        {isAdmin && (
-          <Button 
-            onClick={() => setIsAdding(true)}
-            className="rounded-2xl bg-sky-600 hover:bg-sky-700 h-14 px-8 text-xs tracking-widest"
-          >
-            <Plus className="w-4 h-4 mr-2" /> ADICIONAR VÍDEO
-          </Button>
-        )}
-      </header>
+        <div className="flex items-center gap-4">
+          {isAdmin && (
+            <Button 
+              onClick={() => setIsAdding(true)}
+              className="rounded-[1.5rem] bg-sky-600 hover:bg-sky-700 h-16 px-8 text-xs tracking-widest shadow-xl shadow-sky-200"
+            >
+              <Plus className="w-4 h-4 mr-2" /> ADICIONAR VÍDEO
+            </Button>
+          )}
+          <div className="hidden md:block bg-stone-100 p-6 rounded-[2.5rem] border-2 border-dashed border-stone-200">
+            <PlayIcon className="w-10 h-10 text-stone-300" />
+          </div>
+        </div>
+      </div>
 
       <AnimatePresence>
         {isAdding && (
@@ -93,59 +112,73 @@ export default function Play({ videos, addVideo, deleteVideo, isAdmin }: any) {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {videos.map((video: any) => (
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-[280px]">
+        {videos.map((video: any, index: number) => (
           <motion.div 
             key={video.id}
             whileHover={{ y: -8 }}
-            className="group relative"
+            className={cn(
+              "group relative",
+              index % 5 === 0 ? "md:col-span-8 md:row-span-2" : "md:col-span-4 md:row-span-1",
+              index % 7 === 3 ? "md:col-span-6 md:row-span-1" : ""
+            )}
           >
-            <Card className="overflow-hidden border-none shadow-xl rounded-[2.5rem] bg-white h-full flex flex-col">
-              <div className="relative aspect-video bg-slate-100 overflow-hidden">
+            <div className="rounded-[3rem] bg-white border border-slate-100 overflow-hidden shadow-xl shadow-slate-200/30 group relative flex flex-col h-full hover:shadow-2xl transition-all duration-500">
+              <div className="relative flex-1 bg-slate-100 overflow-hidden">
                 <img 
                   src={`https://img.youtube.com/vi/${video.youtubeId}/maxresdefault.jpg`}
                   alt={video.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   onError={(e: any) => {
                     e.target.src = `https://img.youtube.com/vi/${video.youtubeId}/0.jpg`;
                   }}
                 />
-                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                
+                <div className="absolute inset-0 flex items-center justify-center">
                   <button 
                     onClick={() => setSelectedVideo(video)}
-                    className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-sky-600 shadow-2xl transform scale-50 group-hover:scale-100 transition-transform duration-300"
+                    className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-2xl transform scale-75 group-hover:scale-100 transition-all duration-500 hover:bg-white hover:text-sky-600"
                   >
                     <PlayIcon className="w-8 h-8 fill-current translate-x-0.5" />
                   </button>
                 </div>
               </div>
-              <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
-                <h3 className="text-lg font-black text-slate-800 leading-tight group-hover:text-sky-600 transition-colors">
-                  {video.title}
-                </h3>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    <Youtube className="w-4 h-4 text-rose-500" />
-                    <span>YouTube Education</span>
-                  </div>
-                  {isAdmin && (
-                    <button 
-                      onClick={() => deleteVideo(video.id)}
-                      className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+              
+              <div className="p-8 absolute bottom-0 left-0 right-0 pointer-events-none">
+                <div className="flex flex-col gap-2 pointer-events-auto">
+                   <div className="flex items-center gap-2 mb-2">
+                      <div className="px-3 py-1 bg-rose-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg shadow-rose-500/20">
+                         <Youtube className="w-3 h-3" />
+                         <span>EcoPlay TV</span>
+                      </div>
+                   </div>
+                   <h3 className={cn(
+                     "font-black text-white leading-[0.95] uppercase transition-all line-clamp-2",
+                     index % 5 === 0 ? "text-4xl tracking-tighter" : "text-xl tracking-tight"
+                   )}>
+                     {video.title}
+                   </h3>
+                   {isAdmin && (
+                     <div className="pt-4 mt-2 border-t border-white/10 flex justify-end">
+                        <button 
+                          onClick={() => deleteVideo(video.id)}
+                          className="p-3 bg-white/10 hover:bg-rose-500 text-white rounded-2xl transition-all backdrop-blur-md border border-white/5"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                     </div>
+                   )}
                 </div>
               </div>
-            </Card>
+            </div>
           </motion.div>
         ))}
       </div>
 
       <AnimatePresence>
         {selectedVideo && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-12">
+          <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 sm:p-12">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

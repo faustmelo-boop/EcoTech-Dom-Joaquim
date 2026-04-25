@@ -19,13 +19,20 @@ interface GamesProps {
   addGamePoints: (classId: string, points: number) => Promise<void>;
   profile: any;
   isAdmin: boolean;
+  onGameToggle?: (active: boolean) => void;
+  isGuest?: boolean;
 }
 
-export default function Games({ classes, addGamePoints, profile, isAdmin }: GamesProps) {
+export default function Games({ classes, addGamePoints, profile, isAdmin, onGameToggle, isGuest }: GamesProps) {
   const [activeGame, setActiveGame] = useState<GameType>(null);
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [selectedClassId, setSelectedClassId] = useState<string>('');
+
+  useEffect(() => {
+    onGameToggle?.(!!activeGame);
+    return () => onGameToggle?.(false);
+  }, [activeGame, onGameToggle]);
 
   const handleManualConnect = (e: React.FormEvent) => {
     e.preventDefault();
@@ -380,108 +387,115 @@ export default function Games({ classes, addGamePoints, profile, isAdmin }: Game
         </AnimatePresence>
 
         {/* Header Section */}
-        <div className="flex flex-col gap-8 md:flex-row md:items-end justify-between">
-          <div className="space-y-2">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 w-fit rounded-full">
               <Gamepad2 className="w-3 h-3 text-emerald-600" />
               <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Atividades</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-black text-stone-900 tracking-tighter uppercase leading-[0.9]">
-              ECO GAMES
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-stone-900 tracking-tighter uppercase leading-none underline decoration-lime-400 decoration-8 underline-offset-8">
+              Eco Games
             </h2>
-            <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] max-w-xs leading-relaxed">
-              Transforme lixo em aventura e aprendizado constante!
+            <p className="text-stone-400 font-bold uppercase tracking-widest text-[10px] max-w-sm leading-relaxed">
+               Transforme a sustentabilidade em diversão e aprenda brincando com nossos desafios educativos.
             </p>
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="bg-white px-6 py-4 rounded-[2rem] border-2 border-stone-50 shadow-xl shadow-stone-200/50 flex items-center gap-6">
-              <div className="text-right">
-                <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-1">Pontos na Sessão</p>
-                <div className="flex items-center gap-2 justify-end">
-                  <span className="font-black text-2xl text-stone-900 tracking-tight">{sessionPoints}</span>
-                  <Trophy className="w-4 h-4 text-amber-500 fill-amber-500" />
+          {!isGuest && (
+            <div className="flex items-center gap-4">
+              <div className="bg-white px-6 py-4 rounded-[2.5rem] border-2 border-stone-50 shadow-xl shadow-stone-200/50 flex items-center gap-6">
+                <div className="text-right">
+                  <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-1">Pontos na Sessão</p>
+                  <div className="flex items-center gap-2 justify-end">
+                    <span className="font-black text-2xl text-stone-900 tracking-tight">{sessionPoints}</span>
+                    <Trophy className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  </div>
+                </div>
+                <div className="bg-emerald-50 p-2.5 rounded-2xl">
+                  <div className="bg-emerald-600 p-2 rounded-xl text-white shadow-lg">
+                    <Gamepad2 className="w-5 h-5" />
+                  </div>
                 </div>
               </div>
-              <div className="bg-emerald-50 p-2.5 rounded-2xl">
-                <div className="bg-emerald-600 p-2 rounded-xl text-white shadow-lg">
-                   <Gamepad2 className="w-5 h-5" />
-                </div>
+              <div className="hidden md:block bg-stone-100 p-6 rounded-[2.5rem] border-2 border-dashed border-stone-200">
+                <Gamepad2 className="w-10 h-10 text-stone-300" />
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Remote Control & Class Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Class Card */}
-          <div className="bg-white p-6 rounded-[2.5rem] border border-stone-100 shadow-xl shadow-stone-200/30 flex items-center justify-between group">
-             <div className="flex items-center gap-4">
-                <div className="bg-purple-100 p-4 rounded-[1.5rem] group-hover:scale-110 transition-transform">
-                  <Users className="w-6 h-6 text-purple-600" />
-                </div>
-                <div className="text-left">
-                  <h3 className="text-[10px] font-black text-stone-400 uppercase tracking-widest leading-none mb-1.5">Equipe Ativa</h3>
-                  {profile?.role === 'teacher' ? (
-                    <div className="flex flex-col">
-                       <span className="font-black text-stone-900 text-lg leading-none">{classes.find(c => c.id === selectedClassId)?.name || 'Sem turma'}</span>
-                       <span className="text-[9px] font-bold text-stone-400 mt-1">{classes.find(c => c.id === selectedClassId)?.teamName || 'Selecione no painel'}</span>
-                    </div>
-                  ) : (
-                    <select 
-                      value={selectedClassId}
-                      onChange={(e) => setSelectedClassId(e.target.value)}
-                      className="bg-transparent font-black text-stone-900 outline-none cursor-pointer text-lg leading-none appearance-none"
-                    >
-                      <option value="">Escolher...</option>
-                      {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  )}
-                </div>
-             </div>
-             {(!selectedClassId || isAdmin) && <ChevronRight className="w-5 h-5 text-stone-200" />}
-          </div>
-
-          {/* Remote Info Card */}
-          {!remoteSessionId ? (
-            <button 
-              onClick={() => {
-                if (window.innerWidth < 768) setShowCodeInput(true);
-                else startRemoteSession();
-              }}
-              className="bg-emerald-600 p-6 rounded-[2.5rem] border border-emerald-400 shadow-xl shadow-emerald-200/50 flex items-center justify-between text-white group active:scale-[0.98] transition-all"
-            >
-              <div className="flex items-center gap-4">
-                 <div className="bg-white/20 p-4 rounded-[1.5rem]">
-                   <Smartphone className="w-6 h-6" />
-                 </div>
-                 <div className="text-left">
-                   <h3 className="text-[10px] font-black text-emerald-100 uppercase tracking-widest leading-none mb-1.5">Controle Remoto</h3>
-                   <p className="font-black text-lg leading-none">Vincular Celular</p>
-                 </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-emerald-200" />
-            </button>
-          ) : (
-            <div className="bg-emerald-50 p-6 rounded-[2.5rem] border border-emerald-100 shadow-xl flex items-center justify-between group">
-              <div className="flex items-center gap-4">
-                 <div className="bg-emerald-600 p-4 rounded-[1.5rem] text-white">
-                   <span className="font-black text-lg">{remoteSessionId}</span>
-                 </div>
-                 <div className="text-left">
-                   <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1.5">Sessão Ativa</h3>
-                   <p className="font-black text-stone-900 text-lg leading-none">Controle Conectado</p>
-                 </div>
-              </div>
-              <button 
-                onClick={() => setRemoteSessionId(null)}
-                className="p-3 bg-white rounded-2xl text-stone-300 hover:text-rose-500 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
           )}
         </div>
+
+        {/* Remote Control & Class Info Grid */}
+        {!isGuest && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Class Card */}
+            <div className="bg-white p-6 rounded-[2.5rem] border border-stone-100 shadow-xl shadow-stone-200/30 flex items-center justify-between group">
+              <div className="flex items-center gap-4">
+                  <div className="bg-purple-100 p-4 rounded-[1.5rem] group-hover:scale-110 transition-transform">
+                    <Users className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-[10px] font-black text-stone-400 uppercase tracking-widest leading-none mb-1.5">Equipe Ativa</h3>
+                    {profile?.role === 'teacher' ? (
+                      <div className="flex flex-col">
+                        <span className="font-black text-stone-900 text-lg leading-none">{classes.find(c => c.id === selectedClassId)?.name || 'Sem turma'}</span>
+                        <span className="text-[9px] font-bold text-stone-400 mt-1">{classes.find(c => c.id === selectedClassId)?.teamName || 'Selecione no painel'}</span>
+                      </div>
+                    ) : (
+                      <select 
+                        value={selectedClassId}
+                        onChange={(e) => setSelectedClassId(e.target.value)}
+                        className="bg-transparent font-black text-stone-900 outline-none cursor-pointer text-lg leading-none appearance-none"
+                      >
+                        <option value="">Escolher...</option>
+                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    )}
+                  </div>
+              </div>
+              {(!selectedClassId || isAdmin) && <ChevronRight className="w-5 h-5 text-stone-200" />}
+            </div>
+
+            {/* Remote Info Card */}
+            {!remoteSessionId ? (
+              <button 
+                onClick={() => {
+                  if (window.innerWidth < 768) setShowCodeInput(true);
+                  else startRemoteSession();
+                }}
+                className="bg-emerald-600 p-6 rounded-[2.5rem] border border-emerald-400 shadow-xl shadow-emerald-200/50 flex items-center justify-between text-white group active:scale-[0.98] transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="bg-white/20 p-4 rounded-[1.5rem]">
+                    <Smartphone className="w-6 h-6" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-[10px] font-black text-emerald-100 uppercase tracking-widest leading-none mb-1.5">Controle Remoto</h3>
+                    <p className="font-black text-lg leading-none">Vincular Celular</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-emerald-200" />
+              </button>
+            ) : (
+              <div className="bg-emerald-50 p-6 rounded-[2.5rem] border border-emerald-100 shadow-xl flex items-center justify-between group">
+                <div className="flex items-center gap-4">
+                  <div className="bg-emerald-600 p-4 rounded-[1.5rem] text-white">
+                    <span className="font-black text-lg">{remoteSessionId}</span>
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1.5">Sessão Ativa</h3>
+                    <p className="font-black text-stone-900 text-lg leading-none">Controle Conectado</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setRemoteSessionId(null)}
+                  className="p-3 bg-white rounded-2xl text-stone-300 hover:text-rose-500 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Remote QR (Desktop Overlay) */}
         <AnimatePresence>
@@ -559,8 +573,18 @@ export default function Games({ classes, addGamePoints, profile, isAdmin }: Game
                <AlertCircle className="w-8 h-8 text-amber-600 shrink-0" />
             </div>
             <p className="text-amber-900 font-bold text-sm leading-snug">
-               <span className="font-black uppercase text-[10px] tracking-widest block mb-1">Atenção Detetive</span>
-               Selecione sua turma acima para acumular pontos no ranking oficial!
+               {!isGuest && (
+                 <>
+                   <span className="font-black uppercase text-[10px] tracking-widest block mb-1">Atenção Detetive</span>
+                   Selecione sua turma acima para acumular pontos no ranking oficial!
+                 </>
+               )}
+               {isGuest && (
+                 <>
+                   <span className="font-black uppercase text-[10px] tracking-widest block mb-1">Modo Visitante</span>
+                   Divirta-se! Para salvar pontos no ranking oficial, o professor deve logar você.
+                 </>
+               )}
             </p>
           </div>
         )}

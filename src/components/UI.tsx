@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { cn } from '../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'motion/react';
 import { X } from 'lucide-react';
 
 interface CardProps {
@@ -89,7 +89,7 @@ export function Modal({ isOpen, onClose, title, children }: any) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -101,7 +101,7 @@ export function Modal({ isOpen, onClose, title, children }: any) {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl border border-emerald-100"
+            className="relative w-full max-w-2xl bg-white rounded-[2.5rem] p-8 shadow-2xl border border-emerald-100"
           >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-black text-emerald-950 uppercase tracking-tighter">{title}</h3>
@@ -118,4 +118,16 @@ export function Modal({ isOpen, onClose, title, children }: any) {
       )}
     </AnimatePresence>
   );
+}
+
+export function Counter({ value }: { value: number }) {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (latest) => Math.round(latest).toLocaleString());
+
+  useEffect(() => {
+    const controls = animate(count, value, { duration: 2, ease: "easeOut" });
+    return controls.stop;
+  }, [value, count]);
+
+  return <motion.span>{rounded}</motion.span>;
 }

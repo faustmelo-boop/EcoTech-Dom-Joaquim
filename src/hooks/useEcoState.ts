@@ -2,29 +2,31 @@ import { useState, useEffect } from 'react';
 import { 
   collection, 
   onSnapshot, 
-  addDoc, 
   updateDoc, 
   deleteDoc, 
   doc, 
   query, 
-  where, 
   increment,
   setDoc,
-  serverTimestamp,
   runTransaction,
   arrayUnion
 } from 'firebase/firestore';
 import { db, auth, handleFirestoreError } from '../lib/firebase';
-import { ClassTeam, ResidueEntry, Mission, VisualLog, FoodWaste, Video } from '../types';
+import { ClassTeam, ResidueEntry, Mission, VisualLog, FoodWaste, Video, SupportTicket } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export function useEcoState() {
+  const { profile } = useAuth();
   const [classes, setClasses] = useState<ClassTeam[]>([]);
   const [entries, setEntries] = useState<ResidueEntry[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [logs, setLogs] = useState<VisualLog[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const isAdmin = profile?.role === 'admin';
 
   useEffect(() => {
     // 1. Classes Listener
@@ -67,8 +69,21 @@ export function useEcoState() {
     const unsubVideos = onSnapshot(qVideos, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Video));
       setVideos(data);
-      setLoading(false);
     }, (error) => handleFirestoreError(error, 'list', 'videos'));
+
+    // 7. Tickets Listener - Only for Admin
+    let unsubTickets = () => {};
+    if (isAdmin) {
+      const qTickets = query(collection(db, 'tickets'));
+      unsubTickets = onSnapshot(qTickets, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SupportTicket));
+        setTickets(data);
+        setLoading(false);
+      }, (error) => handleFirestoreError(error, 'list', 'tickets'));
+    } else {
+      setTickets([]);
+      setLoading(false);
+    }
 
     return () => {
       unsubClasses();
@@ -77,8 +92,9 @@ export function useEcoState() {
       unsubMissions();
       unsubLogs();
       unsubVideos();
+      unsubTickets();
     };
-  }, []);
+  }, [isAdmin]);
 
   const assignTeacher = async (classId: string, teacherId: string, teacherName: string) => {
     try {
@@ -253,12 +269,41 @@ export function useEcoState() {
     } catch (e) { handleFirestoreError(e, 'delete', 'videos'); }
   };
 
+  const addTicket = async (subject: string, message: string, teacherId: string, teacherName: string) => {
+    const id = crypto.randomUUID();
+    const newTicket: SupportTicket = {
+      id,
+      subject,
+      message,
+      teacherId,
+      teacherName,
+      status: 'open',
+      createdAt: new Date().toISOString()
+    };
+    try {
+      await setDoc(doc(db, 'tickets', id), newTicket);
+    } catch (e) { handleFirestoreError(e, 'create', 'tickets'); }
+  };
+
+  const deleteTicket = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'tickets', id));
+    } catch (e) { handleFirestoreError(e, 'delete', 'tickets'); }
+  };
+
+  const closeTicket = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'tickets', id), { status: 'closed' });
+    } catch (e) { handleFirestoreError(e, 'update', 'tickets'); }
+  };
+
   return {
     classes,
     entries,
     missions,
     logs,
     videos,
+    tickets,
     users,
     loading,
     addClass,
@@ -276,6 +321,9 @@ export function useEcoState() {
     supportLog,
     feedbackLog,
     addVideo,
-    deleteVideo
+    deleteVideo,
+    addTicket,
+    deleteTicket,
+    closeTicket
   };
 }
